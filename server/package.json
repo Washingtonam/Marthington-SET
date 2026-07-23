@@ -4,7 +4,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "postinstall": "cd .. && npm install --legacy-peer-deps && npm run build:client 2>&1 || true",
     "start": "node index.js",
     "dev": "node index.js"
   },

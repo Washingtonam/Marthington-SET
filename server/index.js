@@ -42,15 +42,6 @@ app.use('/api/leads', leadRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
 
-if (process.env.NODE_ENV === 'production') {
-  const distPath = path.join(__dirname, '../client/dist');
-  console.log(`Serving static files from: ${distPath}`);
-  app.use(express.static(distPath));
-  app.get('*', (_req, res) => {
-    res.sendFile(path.join(distPath, 'index.html'));
-  });
-}
-
 const startServer = () => {
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 };
