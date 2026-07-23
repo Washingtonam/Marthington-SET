@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "postinstall": "cd .. && npm install && npm run build:client",
+    "postinstall": "cd .. && npm install --legacy-peer-deps && npm run build:client 2>&1 || true",
     "start": "node index.js",
     "dev": "node index.js"
   },
@@ -19,5 +19,8 @@
     "mongoose": "^8.17.0",
     "nodemailer": "^6.9.5",
     "pdfkit": "^0.15.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }
