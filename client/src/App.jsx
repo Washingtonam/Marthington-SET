@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, TimerReset, ShieldCheck, BrainCircuit, ArrowRight, Crown, Zap, TrendingUp } from 'lucide-react';
 import { questions as defaultQuestions } from './data/questions';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://marthington-set.onrender.com';
+
 const normalizeQuestions = (questionList = []) => questionList.map((question, index) => {
   const options = question.options?.map((option, optIndex) => (
     typeof option === 'string'
@@ -100,7 +102,7 @@ function App() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch('/api/test/questions')
+    fetch(`${API_BASE_URL}/api/test/questions`)
       .then((res) => res.json())
       .then((data) => { if (data?.length) setQuestions(normalizeQuestions(data)); })
       .catch(() => {});
@@ -142,7 +144,7 @@ function App() {
     const iqScore = 100 + rawScore * 6;
     setState((prev) => ({ ...prev, submitting: true }));
     try {
-      const res = await fetch('/api/test/submit', {
+      const res = await fetch(`${API_BASE_URL}/api/test/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: state.lead.name || 'Guest', email: state.lead.email || 'guest@example.com', dob: state.lead.dob, answers, rawScore, iqScore })
@@ -160,7 +162,7 @@ function App() {
     e.preventDefault();
     setState((prev) => ({ ...prev, submitting: true }));
     try {
-      const res = await fetch('/api/leads', {
+      const res = await fetch(`${API_BASE_URL}/api/leads`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(state.lead)
@@ -178,7 +180,7 @@ function App() {
 
   const handlePayment = async () => {
     try {
-      const res = await fetch('/api/payments/initialize', {
+      const res = await fetch(`${API_BASE_URL}/api/payments/initialize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: state.lead.email, name: state.lead.name, amount: 49, subaccount: 'subaccount_123' })
