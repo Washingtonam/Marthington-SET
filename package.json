@@ -6,6 +6,7 @@
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "node server/index.js",
     "dev:client": "vite --config client/vite.config.js",
+    "start": "node server/index.js",
     "build": "npm run build:client",
     "build:client": "vite build --config client/vite.config.js"
   },
