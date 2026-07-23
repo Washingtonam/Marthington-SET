@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "prebuild": "cd .. && npm install && npm run build:client",
+    "postinstall": "cd .. && npm install && npm run build:client",
     "start": "node index.js",
     "dev": "node index.js"
   },
