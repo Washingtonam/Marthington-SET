@@ -102,13 +102,6 @@ function App() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/test/questions`)
-      .then((res) => res.json())
-      .then((data) => { if (data?.length) setQuestions(normalizeQuestions(data)); })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
     if (state.step >= questions.length) return;
     const timer = setInterval(() => {
       setTimeLeft((prev) => prev > 0 ? prev - 1 : 20);
