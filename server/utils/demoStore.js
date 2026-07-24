@@ -164,12 +164,35 @@ export const upsertDemoLead = ({ name, email, dob }) => {
   return payload;
 };
 
-export const markDemoPayment = ({ email, txRef }) => {
+export const markDemoPayment = ({ email, txRef, name, certificateUnlocked = true, certificateUrl = '' }) => {
   const existing = demoUsers.find((user) => user.email === email);
-  if (!existing) return null;
-  existing.hasPaid = true;
-  existing.flutterwaveTxRef = txRef;
-  return existing;
+  if (existing) {
+    existing.hasPaid = true;
+    existing.flutterwaveTxRef = txRef;
+    existing.certificateUnlocked = certificateUnlocked;
+    existing.certificateUrl = certificateUrl;
+    existing.certificateIssuedAt = new Date().toISOString();
+    return existing;
+  }
+
+  const payload = {
+    _id: randomUUID(),
+    name: name || email || 'Demo learner',
+    email: email || `${txRef}@example.com`,
+    dob: null,
+    testAnswers: [],
+    rawScore: 0,
+    iqScore: 0,
+    hasPaid: true,
+    flutterwaveTxRef: txRef,
+    certificateUnlocked,
+    certificateUrl,
+    certificateIssuedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString()
+  };
+
+  demoUsers.push(payload);
+  return payload;
 };
 
 export const getDemoAnalytics = () => {

@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { Sparkles, TimerReset, ShieldCheck, BrainCircuit, ArrowRight, Crown, Zap, TrendingUp } from 'lucide-react';
 import { questions as defaultQuestions } from './data/questions';
+import CourseUploadModal from './components/CourseUploadModal';
+import CourseSearchBar from './components/CourseSearchBar';
+import CourseDashboard from './components/CourseDashboard';
+import UnifiedTeaserResult from './components/UnifiedTeaserResult';
+import PaymentSuccessPage from './components/PaymentSuccessPage';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://marthington-set.onrender.com';
 
@@ -36,7 +42,9 @@ const initialState = {
   lead: { name: '', email: '', dob: '' },
   submitting: false,
   paid: false,
-  resultsLocked: true
+  resultsLocked: true,
+  selectedCategory: 'Quantitative Reasoning',
+  selectedEducationLevel: 'general'
 };
 
 const pageMotion = {
@@ -98,8 +106,20 @@ const renderShapeSequence = (sequence = []) => (
 function App() {
   const [questions, setQuestions] = useState(normalizeQuestions(defaultQuestions));
   const [state, setState] = useState(initialState);
+  const navigate = useNavigate();
+  const location = useLocation();
   const [timeLeft, setTimeLeft] = useState(20);
   const [error, setError] = useState('');
+  const [loadingQuestions, setLoadingQuestions] = useState(false);
+  const [showCourseTools, setShowCourseTools] = useState(false);
+  const [submissionSummary, setSubmissionSummary] = useState(null);
+
+  useEffect(() => {
+    const savedPaid = typeof window !== 'undefined' ? window.localStorage.getItem('marthington-paid') : null;
+    if (savedPaid === 'true') {
+      setState((prev) => ({ ...prev, paid: true }));
+    }
+  }, []);
 
   useEffect(() => {
     if (state.step >= questions.length) return;
@@ -109,12 +129,34 @@ function App() {
     return () => clearInterval(timer);
   }, [state.step, questions.length]);
 
+  const loadQuestions = async (category, educationLevel) => {
+    setLoadingQuestions(true);
+    try {
+      const query = new URLSearchParams({ category, educationLevel, limit: '12' });
+      const res = await fetch(`${API_BASE_URL}/api/test/questions?${query.toString()}`);
+      const data = await res.json();
+      if (Array.isArray(data) && data.length) {
+        setQuestions(normalizeQuestions(data));
+        setState((prev) => ({ ...prev, step: 0, answers: [] }));
+      }
+    } catch (err) {
+      setError('Unable to load the selected test set.');
+    } finally {
+      setLoadingQuestions(false);
+    }
+  };
+
   const currentQuestion = questions[state.step];
 
   const progressPercent = useMemo(() => {
     if (!questions.length) return 0;
     return ((state.step + 1) / questions.length) * 100;
   }, [questions.length, state.step]);
+
+  const handleStartTest = async () => {
+    await loadQuestions(state.selectedCategory, state.selectedEducationLevel);
+    setState((prev) => ({ ...prev, step: 1 }));
+  };
 
   const handleAnswer = (selectedIndex) => {
     const nextAnswers = [...state.answers];
@@ -140,10 +182,22 @@ function App() {
       const res = await fetch(`${API_BASE_URL}/api/test/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: state.lead.name || 'Guest', email: state.lead.email || 'guest@example.com', dob: state.lead.dob, answers, rawScore, iqScore })
+        body: JSON.stringify({
+          name: state.lead.name || 'Guest',
+          email: state.lead.email || 'guest@example.com',
+          dob: state.lead.dob,
+          answers,
+          rawScore,
+          iqScore,
+          testMetadata: {
+            category: state.selectedCategory,
+            educationLevel: state.selectedEducationLevel
+          }
+        })
       });
       const data = await res.json();
       if (!data.ok) throw new Error(data.message || 'Submission failed');
+      setSubmissionSummary(data.summary || null);
       setState((prev) => ({ ...prev, resultsLocked: true, submitting: false, paid: false }));
     } catch (err) {
       setError(err.message || 'Submission failed');
@@ -181,11 +235,47 @@ function App() {
       const data = await res.json();
       if (!data.ok) throw new Error(data.message || 'Payment failed');
       setState((prev) => ({ ...prev, paid: true }));
+      window.localStorage.setItem('marthington-paid', 'true');
       window.location.href = data.paymentLink;
     } catch (err) {
       setError(err.message || 'Payment failed');
     }
   };
+
+  const renderCategorySelector = () => (
+    <motion.div variants={cardMotion} initial="initial" animate="animate" className="mx-auto w-full max-w-2xl overflow-hidden rounded-[32px] border border-slate-800/80 bg-slate-900/90 p-6 shadow-[0_0_40px_rgba(99,102,241,0.24)] backdrop-blur-xl sm:p-8">
+      <div className="mb-5">
+        <p className="text-sm uppercase tracking-[0.35em] text-cyan-300">Choose a test path</p>
+        <h2 className="mt-2 text-2xl font-semibold text-white">Start your self-evaluation journey</h2>
+        <p className="mt-2 text-sm text-slate-400">Select the category and education level that best fits the learner.</p>
+      </div>
+      <div className="space-y-4">
+        <label className="block text-sm font-medium text-slate-300">
+          Category
+          <select value={state.selectedCategory} onChange={(e) => setState((prev) => ({ ...prev, selectedCategory: e.target.value }))} className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-800/80 px-4 py-3 text-slate-100 outline-none">
+            <option value="Quantitative Reasoning">Quantitative Reasoning</option>
+            <option value="Verbal Reasoning">Verbal Reasoning</option>
+            <option value="Mathematics">Mathematics</option>
+            <option value="General Knowledge">General Knowledge</option>
+          </select>
+        </label>
+        <label className="block text-sm font-medium text-slate-300">
+          Education Level
+          <select value={state.selectedEducationLevel} onChange={(e) => setState((prev) => ({ ...prev, selectedEducationLevel: e.target.value }))} className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-800/80 px-4 py-3 text-slate-100 outline-none">
+            <option value="general">General</option>
+            <option value="nursery">Nursery</option>
+            <option value="primary">Primary</option>
+            <option value="secondary">Secondary</option>
+            <option value="tertiary">Tertiary</option>
+          </select>
+        </label>
+        <button onClick={handleStartTest} disabled={loadingQuestions} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-500 to-fuchsia-500 px-4 py-3 font-semibold text-white shadow-lg shadow-cyan-500/20 transition-transform duration-200 hover:-translate-y-0.5 disabled:opacity-70">
+          {loadingQuestions ? 'Loading questions...' : 'Start Test'}
+          <ArrowRight size={16} />
+        </button>
+      </div>
+    </motion.div>
+  );
 
   const renderQuizCard = () => (
     <motion.div
@@ -279,22 +369,15 @@ function App() {
   const renderResultsTeaser = () => (
     <motion.div variants={cardMotion} initial="initial" animate="animate" className="overflow-hidden rounded-[28px] border border-amber-400/20 bg-slate-950/75 p-6 shadow-[0_0_70px_rgba(250,204,21,0.16)] backdrop-blur-xl">
       <div className="mb-5 flex items-center gap-2 text-amber-300"><ShieldCheck size={18} /> Premium insight locked</div>
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.12),_transparent_45%)]" />
-        <div className="relative space-y-3">
-          <p className="text-sm uppercase tracking-[0.3em] text-cyan-300">Preliminary estimate</p>
-          <h3 className="text-3xl font-semibold text-white">IQ Score: Locked 🔒</h3>
-          <div className="grid gap-2 rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-slate-300">
-            <p><span className="mr-2 text-cyan-300"><TrendingUp size={16} className="inline" /></span>Percentile: Top 3%</p>
-            <p><span className="mr-2 text-cyan-300"><Zap size={16} className="inline" /></span>Cognitive Strengths: High analytical capability</p>
-          </div>
-          <motion.button whileHover={{ y: -2, scale: 1.01 }} whileTap={{ scale: 0.99 }} onClick={handlePayment} className="mt-4 rounded-2xl bg-gradient-to-r from-fuchsia-500 to-amber-400 px-4 py-3 font-semibold text-white shadow-lg shadow-fuchsia-500/20 transition-transform duration-200">Unlock Official Report & Certificate</motion.button>
-        </div>
+      <UnifiedTeaserResult percentage={submissionSummary?.iqScore ? Math.min(100, submissionSummary.iqScore) : submissionSummary?.rawScore ? Math.round((submissionSummary.rawScore / Math.max(1, questions.length)) * 100) : 0} onUnlock={handlePayment} />
+      <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-300">
+        <p className="font-semibold text-white">Next step</p>
+        <p className="mt-1">Pay to unlock the full breakdown, answer key, and certified report.</p>
       </div>
     </motion.div>
   );
 
-  return (
+  const renderMainExperience = () => (
     <motion.div variants={pageMotion} initial="initial" animate="animate" className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.2),_transparent_30%),linear-gradient(135deg,_#020617,_#111827_55%,_#020617)] px-4 py-6 text-slate-50 sm:px-6 lg:px-8">
       <div className="pointer-events-none absolute inset-0 opacity-40">
         <div className="absolute left-1/2 top-12 h-56 w-56 -translate-x-1/2 rounded-full bg-cyan-500/10 blur-3xl" />
@@ -312,11 +395,22 @@ function App() {
               <BrainCircuit size={16} /> Adaptive & premium
             </div>
           </div>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button onClick={() => setShowCourseTools((prev) => !prev)} className="rounded-full border border-slate-700 bg-slate-800/80 px-3 py-2 text-sm text-slate-300">{showCourseTools ? 'Hide course tools' : 'Use course upload/search'}</button>
+          </div>
         </motion.header>
 
         <main className="w-full">
           <div className="space-y-6">
-            {state.step < questions.length && state.step < 3 ? renderQuizCard() : null}
+            {showCourseTools ? (
+              <div className="mx-auto grid w-full max-w-6xl gap-4 lg:grid-cols-2">
+                <CourseUploadModal />
+                <CourseSearchBar />
+              </div>
+            ) : null}
+            {showCourseTools ? <CourseDashboard /> : null}
+            {state.step === 0 ? renderCategorySelector() : null}
+            {state.step >= 1 && state.step < questions.length && state.step < 3 ? renderQuizCard() : null}
             {state.step === 3 ? renderLeadCollector() : null}
             {state.step === 4 ? renderResultsTeaser() : null}
             {error ? <div className="mx-auto max-w-2xl rounded-2xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-300">{error}</div> : null}
@@ -324,6 +418,13 @@ function App() {
         </main>
       </div>
     </motion.div>
+  );
+
+  return (
+    <Routes>
+      <Route path="/payment-success" element={<PaymentSuccessPage />} />
+      <Route path="*" element={renderMainExperience()} />
+    </Routes>
   );
 }
 

@@ -6,9 +6,15 @@ const userSchema = new mongoose.Schema({
   dob: { type: Date },
   testAnswers: [{ questionId: String, selectedIndex: Number }],
   rawScore: { type: Number, default: 0 },
+  percentageScore: { type: Number, default: 0 },
   iqScore: { type: Number, default: 0 },
+  testType: { type: String, enum: ['iq', 'aptitude', 'course_quiz'], default: 'iq' },
+  courseCode: { type: String, default: '' },
   hasPaid: { type: Boolean, default: false },
   flutterwaveTxRef: { type: String, index: true },
+  certificateUnlocked: { type: Boolean, default: false },
+  certificateUrl: { type: String, default: '' },
+  certificateIssuedAt: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now }
 });
 

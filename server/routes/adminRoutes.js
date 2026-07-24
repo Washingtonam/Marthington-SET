@@ -2,6 +2,7 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import Question from '../models/Question.js';
 import User from '../models/User.js';
+import Category from '../models/Category.js';
 import { getDemoAnalytics, isDatabaseReady } from '../utils/demoStore.js';
 
 const router = express.Router();
@@ -38,6 +39,35 @@ router.post('/questions', authMiddleware, async (req, res) => {
   res.json(question);
 });
 
+router.post('/questions/bulk-import', authMiddleware, async (req, res) => {
+  try {
+    const payload = Array.isArray(req.body) ? req.body : req.body?.questions;
+    if (!Array.isArray(payload)) {
+      return res.status(400).json({ message: 'Expected an array of questions' });
+    }
+
+    const items = payload.map((item) => ({
+      ...item,
+      questionText: item.questionText || item.question || '',
+      options: Array.isArray(item.options) ? item.options : [],
+      correctAnswerIndex: typeof item.correctAnswerIndex === 'number' ? item.correctAnswerIndex : null,
+      category: item.category || 'general',
+      educationLevel: item.educationLevel || 'general',
+      topic: item.topic || '',
+      sourceTextbook: item.sourceTextbook || '',
+      questionType: item.questionType || 'multiple_choice',
+      passageText: item.passageText || '',
+      imageUrl: item.imageUrl || '',
+      isVerified: typeof item.isVerified === 'boolean' ? item.isVerified : true
+    }));
+
+    const saved = await Question.insertMany(items);
+    res.json({ ok: true, inserted: saved.length });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 router.put('/questions/:id', authMiddleware, async (req, res) => {
   const updated = await Question.findByIdAndUpdate(req.params.id, req.body, { new: true });
   res.json(updated);
@@ -46,6 +76,16 @@ router.put('/questions/:id', authMiddleware, async (req, res) => {
 router.delete('/questions/:id', authMiddleware, async (req, res) => {
   await Question.findByIdAndDelete(req.params.id);
   res.json({ ok: true });
+});
+
+router.post('/categories', authMiddleware, async (req, res) => {
+  try {
+    const category = new Category(req.body);
+    await category.save();
+    res.json(category);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 router.get('/analytics', authMiddleware, async (_req, res) => {

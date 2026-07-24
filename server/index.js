@@ -11,6 +11,7 @@ import testRoutes from './routes/testRoutes.js';
 import leadRoutes from './routes/leadRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import quizRoutes from './routes/quizRoutes.js';
 
 dotenv.config();
 
@@ -46,9 +47,20 @@ app.use('/api/test', testRoutes);
 app.use('/api/leads', leadRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/quiz', quizRoutes);
 
 const startServer = () => {
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  const server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+  server.on('error', (error) => {
+    if (error.code === 'EADDRINUSE') {
+      console.warn(`Port ${PORT} is already in use. Another server instance is running, so this process will exit cleanly.`);
+      return;
+    }
+
+    console.error('Server failed to start:', error);
+    process.exit(1);
+  });
 };
 
 startServer();
