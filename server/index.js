@@ -66,8 +66,14 @@ const startServer = () => {
 startServer();
 
 const connectMongo = async () => {
+  const mongoUri = process.env.MONGODB_URI;
+  if (!mongoUri) {
+    console.warn('MongoDB not configured, running in demo mode.');
+    return;
+  }
+
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/marthington-iq');
+    await mongoose.connect(mongoUri);
     console.log('MongoDB connected');
   } catch (error) {
     console.warn('Mongo connection unavailable, running in demo mode:', error.message);

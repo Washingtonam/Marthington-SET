@@ -3,6 +3,9 @@ import mongoose from 'mongoose';
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   email: { type: String, required: true, lowercase: true, unique: true, index: true },
+  password: { type: String, default: '' },
+  role: { type: String, enum: ['student', 'teacher', 'admin', 'superadmin'], default: 'student' },
+  isActive: { type: Boolean, default: true },
   dob: { type: Date },
   testAnswers: [{ questionId: String, selectedIndex: Number }],
   rawScore: { type: Number, default: 0 },

@@ -114,9 +114,54 @@ const demoQuestions = [
 
 const demoUsers = [];
 
-export const isDatabaseReady = () => mongoose.connection.readyState === 1;
+export const isDatabaseReady = () => mongoose.connection.readyState === 1 && Boolean(mongoose.connection.db);
 
 export const getDemoQuestions = () => demoQuestions;
+
+export const findDemoUserByEmail = (email) => {
+  const normalizedEmail = (email || '').toLowerCase().trim();
+  return demoUsers.find((user) => user.email === normalizedEmail) || null;
+};
+
+export const createDemoUser = ({ name, email, password = '', role = 'student', isActive = true }) => {
+  const normalizedEmail = (email || '').toLowerCase().trim();
+  const existing = findDemoUserByEmail(normalizedEmail);
+  if (existing) return existing;
+
+  const payload = {
+    _id: randomUUID(),
+    name,
+    email: normalizedEmail,
+    password,
+    role,
+    isActive,
+    dob: null,
+    testAnswers: [],
+    rawScore: 0,
+    percentageScore: 0,
+    iqScore: 0,
+    testType: 'iq',
+    courseCode: '',
+    hasPaid: false,
+    flutterwaveTxRef: '',
+    certificateUnlocked: false,
+    certificateUrl: '',
+    certificateIssuedAt: null,
+    createdAt: new Date().toISOString()
+  };
+
+  demoUsers.push(payload);
+  return payload;
+};
+
+export const listDemoUsers = () => demoUsers.map((user) => ({ ...user }));
+
+export const updateDemoUserRole = (id, role) => {
+  const user = demoUsers.find((item) => item._id === id || item.email === id);
+  if (!user) return null;
+  user.role = role;
+  return { ...user };
+};
 
 export const saveDemoSubmission = ({ name, email, dob, answers, rawScore, iqScore }) => {
   const existing = demoUsers.find((user) => user.email === email);

@@ -24,7 +24,18 @@ router.post('/', async (req, res) => {
 
     const user = await User.findOneAndUpdate(
       { email: value.email },
-      { $set: { name: value.name, dob: value.dob ? new Date(value.dob) : undefined } },
+      {
+        $set: {
+          name: value.name,
+          dob: value.dob ? new Date(value.dob) : undefined,
+          role: 'student'
+        },
+        $setOnInsert: {
+          email: value.email,
+          password: '',
+          isActive: true
+        }
+      },
       { upsert: true, new: true }
     );
 

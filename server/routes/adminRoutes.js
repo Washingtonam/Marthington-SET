@@ -1,9 +1,10 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import Question from '../models/Question.js';
 import User from '../models/User.js';
 import Category from '../models/Category.js';
-import { getDemoAnalytics, isDatabaseReady } from '../utils/demoStore.js';
+import { createDemoUser, findDemoUserByEmail, getDemoAnalytics, isDatabaseReady, listDemoUsers, updateDemoUserRole } from '../utils/demoStore.js';
 
 const router = express.Router();
 
@@ -19,13 +20,173 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const { username, password } = req.body;
+
   if (username === 'admin' && password === 'admin123') {
-    const token = jwt.sign({ role: 'admin' }, process.env.JWT_SECRET || 'super-secret');
-    return res.json({ token });
+    const token = jwt.sign({ role: 'superadmin', email: 'admin@marthington.local' }, process.env.JWT_SECRET || 'super-secret');
+    return res.json({ token, user: { email: 'admin@marthington.local', role: 'superadmin' } });
   }
-  return res.status(401).json({ message: 'Invalid credentials' });
+
+  const normalizedEmail = (username || '').toLowerCase().trim();
+
+  if (!isDatabaseReady()) {
+    const demoUser = findDemoUserByEmail(normalizedEmail);
+    if (!demoUser || !demoUser.password) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const providedHash = crypto.createHash('sha256').update(password || '').digest('hex');
+    if (providedHash !== demoUser.password) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign({ role: demoUser.role, email: demoUser.email, userId: demoUser._id }, process.env.JWT_SECRET || 'super-secret');
+    return res.json({ token, user: { id: demoUser._id, email: demoUser.email, role: demoUser.role, name: demoUser.name } });
+  }
+
+  try {
+    const user = await User.findOne({ email: normalizedEmail });
+    if (!user || !user.password) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const providedHash = crypto.createHash('sha256').update(password || '').digest('hex');
+    if (providedHash !== user.password) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign({ role: user.role, email: user.email, userId: user._id }, process.env.JWT_SECRET || 'super-secret');
+    return res.json({ token, user: { id: user._id, email: user.email, role: user.role, name: user.name } });
+  } catch (error) {
+    const demoUser = findDemoUserByEmail(normalizedEmail);
+    if (!demoUser || !demoUser.password) {
+      return res.status(500).json({ message: error.message });
+    }
+
+    const providedHash = crypto.createHash('sha256').update(password || '').digest('hex');
+    if (providedHash !== demoUser.password) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign({ role: demoUser.role, email: demoUser.email, userId: demoUser._id }, process.env.JWT_SECRET || 'super-secret');
+    return res.json({ token, user: { id: demoUser._id, email: demoUser.email, role: demoUser.role, name: demoUser.name } });
+  }
+});
+
+router.post('/register', async (req, res) => {
+  try {
+    const { name, email, password, role = 'student' } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: 'Name, email and password are required' });
+    }
+
+    const normalizedEmail = String(email).toLowerCase().trim();
+
+    if (!isDatabaseReady()) {
+      const existing = findDemoUserByEmail(normalizedEmail);
+      if (existing) {
+        return res.status(409).json({ message: 'A user with this email already exists' });
+      }
+
+      const hashedPassword = crypto.createHash('sha256').update(password).digest('hex');
+      const user = createDemoUser({
+        name,
+        email: normalizedEmail,
+        password: hashedPassword,
+        role: ['student', 'teacher', 'admin', 'superadmin'].includes(role) ? role : 'student'
+      });
+
+      return res.status(201).json({ ok: true, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+    }
+
+    try {
+      const existing = await User.findOne({ email: normalizedEmail });
+      if (existing) {
+        return res.status(409).json({ message: 'A user with this email already exists' });
+      }
+
+      const hashedPassword = crypto.createHash('sha256').update(password).digest('hex');
+      const user = await User.create({
+        name,
+        email: normalizedEmail,
+        password: hashedPassword,
+        role: ['student', 'teacher', 'admin', 'superadmin'].includes(role) ? role : 'student'
+      });
+
+      return res.status(201).json({ ok: true, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+    } catch (error) {
+      const existing = findDemoUserByEmail(normalizedEmail);
+      if (existing) {
+        return res.status(409).json({ message: 'A user with this email already exists' });
+      }
+
+      const hashedPassword = crypto.createHash('sha256').update(password).digest('hex');
+      const user = createDemoUser({
+        name,
+        email: normalizedEmail,
+        password: hashedPassword,
+        role: ['student', 'teacher', 'admin', 'superadmin'].includes(role) ? role : 'student'
+      });
+
+      return res.status(201).json({ ok: true, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.put('/users/:id/role', authMiddleware, async (req, res) => {
+  try {
+    const { role } = req.body;
+    const allowedRoles = ['student', 'teacher', 'admin', 'superadmin'];
+    if (!allowedRoles.includes(role)) {
+      return res.status(400).json({ message: 'Invalid role' });
+    }
+
+    const actingUser = req.user;
+    if (actingUser.role !== 'superadmin' && actingUser.role !== 'admin') {
+      return res.status(403).json({ message: 'Only admins can change roles' });
+    }
+
+    if (!isDatabaseReady()) {
+      const user = updateDemoUserRole(req.params.id, role);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      return res.json({ ok: true, user });
+    }
+
+    try {
+      const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true });
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      return res.json({ ok: true, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+    } catch (error) {
+      const user = updateDemoUserRole(req.params.id, role);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      return res.json({ ok: true, user });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get('/users', authMiddleware, async (_req, res) => {
+  try {
+    if (!isDatabaseReady()) {
+      return res.json(listDemoUsers());
+    }
+
+    const users = await User.find().select('-password').sort({ createdAt: -1 }).lean();
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 router.get('/questions', authMiddleware, async (_req, res) => {
