@@ -373,125 +373,231 @@ function App() {
   );
 
   const renderQuizCard = () => (
-    <motion.div
-      variants={cardMotion}
-      initial="initial"
-      animate="animate"
-      whileHover={{ y: -3 }}
-      className="mx-auto w-full max-w-2xl overflow-hidden rounded-[32px] border border-slate-800/80 bg-slate-900/90 p-6 shadow-[0_0_40px_rgba(99,102,241,0.24)] backdrop-blur-xl sm:p-8"
-    >
-      <div className="relative mb-6 flex items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="flex items-center gap-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-sm font-semibold uppercase tracking-wide text-indigo-300">
-            <span>🧠</span> {currentQuestion?.category}
-          </span>
-          <span className="flex items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-sm font-semibold text-amber-400">
-            <span>🔥</span> 2x Streak
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5 rounded-full border border-slate-700/50 bg-slate-800/80 px-3 py-1 text-sm font-semibold text-slate-300">
-          <TimerReset size={15} className="text-cyan-300" />
-          <span className="font-mono text-indigo-300">{timeLeft}s</span>
-        </div>
-      </div>
-
-      <div className="mb-6">
-        <div className="mb-2 flex items-center justify-between text-xs font-medium text-slate-400">
-          <span>Question {Math.min(state.step + 1, questions.length)} of {questions.length}</span>
-          <span>{Math.round(progressPercent)}% Completed</span>
-        </div>
-        <div className="h-2 overflow-hidden rounded-full bg-slate-800 p-0.5">
-          <motion.div
-            className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 shadow-[0_0_12px_rgba(99,102,241,0.8)]"
-            animate={{ width: `${progressPercent}%` }}
-            transition={{ duration: 0.45, ease: 'easeOut' }}
-          />
-        </div>
-      </div>
-
-      <AnimatePresence mode="wait">
-        <motion.div key={currentQuestion?.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="space-y-6">
-          <div className="space-y-3">
-            <h2 className="text-2xl font-extrabold tracking-tight text-white sm:text-[1.75rem]">{currentQuestion?.question}</h2>
-            <div className="space-y-4 rounded-2xl border border-slate-700/40 bg-slate-800/60 px-4 py-4 text-indigo-300">
-              <div className="mb-3 rounded-3xl border border-slate-700/50 bg-slate-900/70 p-4 text-slate-100 shadow-[0_0_30px_rgba(15,23,42,0.35)]">
-                <div className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">Sequence</div>
-                <div className="mt-3 text-base text-slate-300">{currentQuestion?.sequence}</div>
-              </div>
-              <p className="text-sm text-slate-400">
-                <span className="mr-1">💡</span>
-                <span className="italic">{currentQuestion?.hint || 'Look at how each number scales from the previous one.'}</span>
-              </p>
+    <div className="min-h-screen w-full bg-gradient-to-b from-slate-950 via-indigo-950/20 to-slate-950 pt-24 pb-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+      <motion.div
+        variants={cardMotion}
+        initial="initial"
+        animate="animate"
+        className="w-full max-w-3xl overflow-hidden rounded-3xl border border-indigo-500/30 bg-gradient-to-br from-indigo-950/40 to-purple-950/40 backdrop-blur-xl p-8 sm:p-10 shadow-2xl"
+      >
+        {/* Header Section */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between gap-4 mb-6">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="px-4 py-2 rounded-full border border-indigo-500/40 bg-indigo-600/20 text-indigo-300 text-sm font-semibold">
+                📊 {currentQuestion?.category}
+              </span>
+              <span className="px-4 py-2 rounded-full border border-yellow-500/40 bg-yellow-600/20 text-yellow-300 text-sm font-semibold">
+                🔥 2x Streak
+              </span>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-indigo-500/30 bg-indigo-950/50">
+              <TimerReset size={18} className="text-indigo-400" />
+              <span className="font-mono text-lg font-bold text-indigo-300">{timeLeft}s</span>
             </div>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {currentQuestion?.options?.map((option, index) => (
-              <motion.button
-                key={option.value}
-                type="button"
-                onClick={() => handleAnswer(index)}
-                whileHover={optionMotion.whileHover}
-                whileTap={optionMotion.whileTap}
-                className="group flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-800/40 px-4 py-4 text-left text-slate-200 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 hover:-translate-y-0.5 hover:border-indigo-500 hover:bg-slate-800/80"
-              >
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-sm font-bold text-slate-300 transition-colors group-hover:bg-indigo-500/20 group-hover:text-indigo-300">{option.label}</span>
-                <span className="text-base font-semibold">{option.value}</span>
-              </motion.button>
-            ))}
+
+          {/* Progress Bar */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm text-slate-400">
+              <span>Question {Math.min(state.step + 1, questions.length)} of {questions.length}</span>
+              <span>{Math.round(progressPercent)}% Complete</span>
+            </div>
+            <div className="h-2.5 rounded-full overflow-hidden bg-slate-800/50 border border-indigo-500/20">
+              <motion.div
+                className="h-full bg-gradient-to-r from-indigo-600 to-purple-600 shadow-lg shadow-indigo-500/50"
+                animate={{ width: `${progressPercent}%` }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
+              />
+            </div>
           </div>
-        </motion.div>
-      </AnimatePresence>
-    </motion.div>
+        </div>
+
+        {/* Question Content */}
+        <AnimatePresence mode="wait">
+          <motion.div 
+            key={currentQuestion?.id} 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: -20 }} 
+            className="space-y-8"
+          >
+            {/* Question Text */}
+            <div className="space-y-4">
+              <h2 className="text-3xl font-bold text-white leading-tight">
+                {currentQuestion?.question}
+              </h2>
+              
+              {/* Sequence or Context Box */}
+              {currentQuestion?.sequence && (
+                <div className="rounded-2xl border border-indigo-500/30 bg-indigo-950/30 p-6">
+                  <p className="text-sm uppercase tracking-wide text-indigo-300 font-semibold mb-3">
+                    Sequence
+                  </p>
+                  <p className="text-lg font-semibold text-white">
+                    {currentQuestion?.sequence}
+                  </p>
+                </div>
+              )}
+
+              {/* Hint */}
+              {currentQuestion?.hint && (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-4 flex gap-3">
+                  <span className="text-xl flex-shrink-0">💡</span>
+                  <p className="text-sm text-slate-300 italic">
+                    {currentQuestion?.hint}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Answer Options */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {currentQuestion?.options?.map((option, index) => (
+                <motion.button
+                  key={option.value}
+                  type="button"
+                  onClick={() => handleAnswer(index)}
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="group relative flex items-start gap-4 p-5 rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-indigo-950/20 to-purple-950/20 hover:from-indigo-950/40 hover:to-purple-950/40 hover:border-indigo-500/50 transition-all text-left"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex-shrink-0 text-white font-bold text-lg group-hover:shadow-lg group-hover:shadow-indigo-500/50 transition">
+                    {option.label}
+                  </div>
+                  <div className="flex-1 pt-1">
+                    <p className="font-semibold text-white text-base leading-tight">
+                      {option.value}
+                    </p>
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </motion.div>
+    </div>
   );
 
   const renderLeadCollector = () => (
-    <motion.div variants={cardMotion} initial="initial" animate="animate" className="overflow-hidden rounded-[28px] border border-fuchsia-400/20 bg-slate-950/75 p-6 shadow-[0_0_70px_rgba(192,132,252,0.16)] backdrop-blur-xl">
-      <div className="mb-4 flex items-center gap-2 text-fuchsia-300"><Crown size={18} /> Almost there</div>
-      <h3 className="mb-2 text-2xl font-semibold">Unlock the next stage</h3>
-      <p className="mb-5 text-sm text-slate-400">We only use this to personalize your IQ report and keep your progress safe.</p>
-      <form onSubmit={handleLeadSubmit} className="space-y-3">
-        <input required value={state.lead.name} onChange={(e) => setState((prev) => ({ ...prev, lead: { ...prev.lead, name: e.target.value } }))} className="w-full rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-slate-100 outline-none ring-0 transition focus:border-cyan-400/40" placeholder="Full name" />
-        <input type="date" value={state.lead.dob} onChange={(e) => setState((prev) => ({ ...prev, lead: { ...prev.lead, dob: e.target.value } }))} className="w-full rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-400/40" />
-        <input required type="email" value={state.lead.email} onChange={(e) => setState((prev) => ({ ...prev, lead: { ...prev.lead, email: e.target.value } }))} className="w-full rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-400/40" placeholder="Email address" />
-        <button type="submit" className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-500 to-fuchsia-500 px-4 py-3 font-semibold text-white shadow-lg shadow-cyan-500/20 transition-transform duration-200 hover:-translate-y-0.5 focus:outline-none">Continue <ArrowRight size={16}/></button>
-      </form>
-      <motion.div variants={glowMotion} className="mt-5 rounded-3xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-        <div className="flex items-center gap-2 text-cyan-300"><Sparkles className="h-4 w-4" /> Secure your premium report and badge unlock.</div>
+    <div className="min-h-screen w-full bg-gradient-to-b from-slate-950 via-indigo-950/20 to-slate-950 pt-24 pb-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+      <motion.div variants={cardMotion} initial="initial" animate="animate" className="w-full max-w-2xl overflow-hidden rounded-3xl border border-indigo-500/30 bg-gradient-to-br from-indigo-950/40 to-purple-950/40 backdrop-blur-xl p-8 sm:p-10 shadow-2xl">
+        <div className="mb-8">
+          <div className="flex items-center gap-2 text-indigo-300 mb-3">
+            <Crown size={20} className="text-indigo-400" /> 
+            <span className="font-semibold">Almost there</span>
+          </div>
+          <h2 className="text-3xl font-bold text-white mb-2">Unlock Your Assessment</h2>
+          <p className="text-slate-400">We only use this to personalize your report and keep your progress secure.</p>
+        </div>
+
+        <form onSubmit={handleLeadSubmit} className="space-y-4 mb-8">
+          <div>
+            <label className="block text-sm text-slate-300 mb-2 font-medium">Full Name</label>
+            <input 
+              required 
+              value={state.lead.name} 
+              onChange={(e) => setState((prev) => ({ ...prev, lead: { ...prev.lead, name: e.target.value } }))} 
+              className="w-full rounded-2xl border border-indigo-500/30 bg-indigo-950/20 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none focus:border-indigo-500/60 focus:bg-indigo-950/30 transition" 
+              placeholder="John Doe" 
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-300 mb-2 font-medium">Date of Birth</label>
+            <input 
+              type="date" 
+              value={state.lead.dob} 
+              onChange={(e) => setState((prev) => ({ ...prev, lead: { ...prev.lead, dob: e.target.value } }))} 
+              className="w-full rounded-2xl border border-indigo-500/30 bg-indigo-950/20 px-4 py-3 text-slate-100 outline-none focus:border-indigo-500/60 focus:bg-indigo-950/30 transition" 
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-300 mb-2 font-medium">Email Address</label>
+            <input 
+              required 
+              type="email" 
+              value={state.lead.email} 
+              onChange={(e) => setState((prev) => ({ ...prev, lead: { ...prev.lead, email: e.target.value } }))} 
+              className="w-full rounded-2xl border border-indigo-500/30 bg-indigo-950/20 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none focus:border-indigo-500/60 focus:bg-indigo-950/30 transition" 
+              placeholder="you@example.com" 
+            />
+          </div>
+          <motion.button 
+            type="submit" 
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 font-semibold text-white shadow-lg shadow-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/70 transition"
+          >
+            Continue to Results <ArrowRight size={18}/>
+          </motion.button>
+        </form>
+
+        <div className="rounded-2xl border border-indigo-500/30 bg-indigo-950/20 p-4">
+          <div className="flex items-center gap-2 text-indigo-300 text-sm">
+            <Sparkles className="w-4 h-4 text-indigo-400" /> 
+            <span>Your data is encrypted and secure. We never share your information.</span>
+          </div>
+        </div>
       </motion.div>
-    </motion.div>
+    </div>
   );
 
   const renderResultsTeaser = () => (
-    <motion.div variants={cardMotion} initial="initial" animate="animate" className="overflow-hidden rounded-[28px] border border-amber-400/20 bg-slate-950/75 p-6 shadow-[0_0_70px_rgba(250,204,21,0.16)] backdrop-blur-xl">
-      <div className="mb-5 flex items-center gap-2 text-amber-300"><ShieldCheck size={18} /> Premium insight locked</div>
-      <UnifiedTeaserResult percentage={submissionSummary?.iqScore ? Math.min(100, submissionSummary.iqScore) : submissionSummary?.rawScore ? Math.round((submissionSummary.rawScore / Math.max(1, questions.length)) * 100) : 0} onUnlock={handlePayment} />
-      <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-300">
-        <p className="font-semibold text-white">Next step</p>
-        <p className="mt-1">Pay to unlock the full breakdown, answer key, and certified report.</p>
-      </div>
-    </motion.div>
+    <div className="min-h-screen w-full bg-gradient-to-b from-slate-950 via-indigo-950/20 to-slate-950 pt-24 pb-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+      <motion.div variants={cardMotion} initial="initial" animate="animate" className="w-full max-w-3xl overflow-hidden rounded-3xl border border-indigo-500/30 bg-gradient-to-br from-indigo-950/40 to-purple-950/40 backdrop-blur-xl p-8 sm:p-10 shadow-2xl">
+        <div className="mb-8 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-indigo-500/30 bg-indigo-950/40 mb-4">
+            <ShieldCheck size={18} className="text-indigo-400" />
+            <span className="text-indigo-300 text-sm font-semibold">Premium Assessment Locked</span>
+          </div>
+          <h2 className="text-3xl font-bold text-white">Your Results Are Ready</h2>
+        </div>
+
+        <UnifiedTeaserResult 
+          percentage={submissionSummary?.iqScore ? Math.min(100, submissionSummary.iqScore) : submissionSummary?.rawScore ? Math.round((submissionSummary.rawScore / Math.max(1, questions.length)) * 100) : 0} 
+          onUnlock={handlePayment} 
+        />
+
+        <div className="mt-8 rounded-2xl border border-indigo-500/30 bg-indigo-950/20 p-6">
+          <p className="text-sm text-slate-300 mb-3">
+            <span className="font-semibold text-white block mb-2">✨ Unlock Your Full Report</span>
+            Get detailed insights, answer breakdowns, certified report, and shareable badge.
+          </p>
+        </div>
+      </motion.div>
+    </div>
   );
 
   const renderMainExperience = () => (
-    <motion.div variants={pageMotion} initial="initial" animate="animate" className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.2),_transparent_30%),linear-gradient(135deg,_#020617,_#111827_55%,_#020617)] px-4 py-6 text-slate-50 sm:px-6 lg:px-8">
-      <div className="pointer-events-none absolute inset-0 opacity-40">
-        <div className="absolute left-1/2 top-12 h-56 w-56 -translate-x-1/2 rounded-full bg-cyan-500/10 blur-3xl" />
-        <div className="absolute right-12 top-1/3 h-72 w-72 rounded-full bg-fuchsia-500/10 blur-3xl" />
+    <motion.div variants={pageMotion} initial="initial" animate="animate" className="relative min-h-screen overflow-hidden bg-gradient-to-b from-slate-950 via-indigo-950/20 to-slate-950 px-4 py-8 text-slate-50 sm:px-6 lg:px-8">
+      <div className="pointer-events-none absolute inset-0 opacity-30">
+        <div className="absolute left-1/2 top-0 h-96 w-96 -translate-x-1/2 rounded-full bg-indigo-600/10 blur-3xl" />
+        <div className="absolute right-0 top-1/2 h-80 w-80 rounded-full bg-purple-600/10 blur-3xl" />
       </div>
       <div className="relative mx-auto flex max-w-6xl flex-col gap-6">
-        <motion.header initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.65, ease: 'easeOut' }} className="overflow-hidden rounded-[32px] border border-slate-800/70 bg-slate-900/70 p-6 shadow-[0_0_40px_rgba(99,102,241,0.18)] backdrop-blur-xl">
+        <motion.header initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.65, ease: 'easeOut' }} className="overflow-hidden rounded-3xl border border-indigo-500/30 bg-gradient-to-br from-indigo-950/40 to-purple-950/40 p-8 shadow-2xl backdrop-blur-xl">
           <div className="relative flex flex-wrap items-center justify-between gap-4">
             <div className="max-w-2xl">
-              <p className="text-sm uppercase tracking-[0.35em] text-cyan-300">Marthington SET</p>
-              <h1 className="mt-2 text-3xl font-semibold sm:text-4xl">A sophisticated cognitive assessment built for high-value certification.</h1>
-              <p className="mt-3 text-base text-slate-400">Complete the test, receive a verified certificate, and present your strengths with confidence.</p>
+              <div className="inline-block mb-3 px-4 py-2 bg-indigo-950/50 border border-indigo-500/30 rounded-full">
+                <span className="text-indigo-300 text-sm font-medium">✨ Marthington SET</span>
+              </div>
+              <h1 className="text-4xl font-bold text-white mb-3">A Sophisticated Cognitive Assessment</h1>
+              <p className="text-lg text-slate-300">Built for high-value certification. Complete the test, receive a verified certificate, and present your strengths with confidence.</p>
             </div>
-            <div className="flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-cyan-300">
-              <BrainCircuit size={16} /> Adaptive & premium
+            <div className="flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-950/40 px-4 py-2 text-indigo-300 whitespace-nowrap">
+              <BrainCircuit size={18} className="text-indigo-400" /> 
+              <span className="font-semibold">Adaptive & Premium</span>
             </div>
           </div>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <button onClick={() => setShowCourseTools((prev) => !prev)} className="rounded-full border border-slate-700 bg-slate-800/80 px-3 py-2 text-sm text-slate-300">{showCourseTools ? 'Hide course tools' : 'Use course upload/search'}</button>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <motion.button 
+              onClick={() => setShowCourseTools((prev) => !prev)}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="rounded-xl border border-indigo-500/30 bg-indigo-950/30 hover:bg-indigo-950/50 px-4 py-2 text-sm font-medium text-indigo-300 transition"
+            >
+              {showCourseTools ? '✕ Hide course tools' : '+ Use course upload/search'}
+            </motion.button>
           </div>
         </motion.header>
 
