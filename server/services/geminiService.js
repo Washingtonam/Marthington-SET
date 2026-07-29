@@ -85,7 +85,77 @@ Generate the questions now:`;
 }
 
 /**
+ * Fallback sample questions for common topics
+ * Used when Gemini API is unavailable (no billing enabled)
+ */
+const FALLBACK_QUESTIONS = {
+  default: [
+    {
+      question: "What is the primary function of a computer's CPU?",
+      options: ["Storing data", "Executing instructions", "Displaying output", "Managing network connections"],
+      correctAnswerIndex: 1,
+      correctAnswer: "B",
+      hint: "Think about what processes information in a computer",
+      difficulty: "easy",
+      category: "Computer Science",
+      explanation: "The CPU (Central Processing Unit) executes instructions from programs and performs calculations."
+    },
+    {
+      question: "Which of the following is an example of a high-level programming language?",
+      options: ["Assembly", "Machine Code", "Python", "Bytecode"],
+      correctAnswerIndex: 2,
+      correctAnswer: "C",
+      hint: "High-level languages are more human-readable",
+      difficulty: "easy",
+      category: "Computer Science",
+      explanation: "Python is a high-level programming language that is easy to read and write for humans."
+    },
+    {
+      question: "What does 'GUI' stand for?",
+      options: ["Graph User Input", "Graphical User Interface", "Global User Identity", "General Utility Integration"],
+      correctAnswerIndex: 1,
+      correctAnswer: "B",
+      hint: "It's the visual part of software you interact with",
+      difficulty: "easy",
+      category: "Computer Science",
+      explanation: "GUI stands for Graphical User Interface - the visual elements users interact with in applications."
+    },
+    {
+      question: "Which data structure works on the principle of 'Last In, First Out'?",
+      options: ["Queue", "Stack", "Array", "Tree"],
+      correctAnswerIndex: 1,
+      correctAnswer: "B",
+      hint: "Think of a stack of plates",
+      difficulty: "medium",
+      category: "Computer Science",
+      explanation: "A Stack follows LIFO (Last In, First Out) principle where the last element added is the first one removed."
+    },
+    {
+      question: "What is the time complexity of binary search?",
+      options: ["O(n)", "O(n²)", "O(log n)", "O(1)"],
+      correctAnswerIndex: 2,
+      correctAnswer: "C",
+      hint: "It reduces the search space by half each time",
+      difficulty: "medium",
+      category: "Computer Science",
+      explanation: "Binary search has O(log n) time complexity because it divides the search space in half with each iteration."
+    }
+  ]
+};
+
+function generateFallbackQuestions(topic, difficulty = "medium", count = 10) {
+  const fallbackQs = FALLBACK_QUESTIONS.default || [];
+  
+  // Filter by difficulty or return all if not available
+  const filtered = fallbackQs.length > 0 ? fallbackQs : FALLBACK_QUESTIONS.default;
+  
+  // Return requested count (or all available)
+  return filtered.slice(0, Math.min(count, filtered.length));
+}
+
+/**
  * Generate questions with fallback strategy
+ * If Gemini API fails (no billing), use sample questions
  */
 export async function generateQuestionsWithFallback(topic, difficulty = "medium", count = 10) {
   try {
@@ -93,6 +163,20 @@ export async function generateQuestionsWithFallback(topic, difficulty = "medium"
     return { success: true, questions, source: "ai-generated" };
   } catch (error) {
     console.error("AI generation failed:", error.message);
+    console.log("⚠️ Falling back to sample questions. To use AI generation, enable billing on your Google Cloud project.");
+    
+    // Use fallback sample questions
+    const fallbackQuestions = generateFallbackQuestions(topic, difficulty, count);
+    
+    if (fallbackQuestions.length > 0) {
+      return { 
+        success: true, 
+        questions: fallbackQuestions, 
+        source: "fallback-sample",
+        warning: "Using sample questions. Enable billing on Google Cloud to use AI generation."
+      };
+    }
+    
     return { success: false, questions: [], source: "failed", error: error.message };
   }
 }
