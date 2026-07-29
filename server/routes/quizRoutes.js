@@ -2,6 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import Question from '../models/Question.js';
 import { generateQuestionBundle } from '../utils/pdfProcessor.js';
+import { getOrGenerateQuestions, preGenerateCommonTopics } from '../services/questionCacheService.js';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -89,6 +90,106 @@ router.get('/search', async (req, res) => {
     res.json(results);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+// ===== AI-POWERED QUESTION GENERATION ENDPOINTS =====
+
+/**
+ * GET /api/quiz/ai-questions?topic=...&difficulty=...&count=...
+ * Get or generate questions for any topic using AI
+ * Smart caching: checks DB first, generates if not found
+ */
+router.get('/ai-questions', async (req, res) => {
+  try {
+    const { topic, difficulty = 'medium', count = 10 } = req.query;
+
+    if (!topic || !topic.trim()) {
+      return res.status(400).json({
+        ok: false,
+        message: 'Topic parameter is required'
+      });
+    }
+
+    const result = await getOrGenerateQuestions(topic.trim(), difficulty, parseInt(count) || 10);
+
+    if (!result.success) {
+      return res.status(500).json({
+        ok: false,
+        message: result.error || 'Failed to generate questions'
+      });
+    }
+
+    res.json({
+      ok: true,
+      ...result,
+      count: result.questions.length
+    });
+  } catch (error) {
+    console.error('Error in /ai-questions:', error.message);
+    res.status(500).json({
+      ok: false,
+      message: error.message || 'Internal server error'
+    });
+  }
+});
+
+/**
+ * POST /api/quiz/pre-generate
+ * Pre-generate questions for common topics (admin endpoint)
+ * Speeds up initial user experience
+ */
+router.post('/pre-generate', async (req, res) => {
+  try {
+    // Optional: Add auth middleware here to restrict to admin
+    console.log('Starting pre-generation of common topics...');
+    
+    // Run async without blocking response
+    preGenerateCommonTopics().catch(err => 
+      console.error('Error in background pre-generation:', err.message)
+    );
+
+    res.json({
+      ok: true,
+      message: 'Pre-generation started in background'
+    });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/quiz/cached-topics
+ * Get list of topics that have cached questions
+ */
+router.get('/cached-topics', async (req, res) => {
+  try {
+    const topics = await Question.distinct('category', {
+      source: 'ai-generated'
+    });
+
+    const topicStats = await Promise.all(
+      topics.map(async (topic) => ({
+        topic,
+        count: await Question.countDocuments({
+          category: topic,
+          source: 'ai-generated'
+        })
+      }))
+    );
+
+    res.json({
+      ok: true,
+      topics: topicStats.sort((a, b) => b.count - a.count)
+    });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      message: error.message
+    });
   }
 });
 
