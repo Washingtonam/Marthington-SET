@@ -15,7 +15,8 @@ export async function generateQuestions(topic, difficulty = "medium", count = 10
       throw new Error("GEMINI_API_KEY environment variable not set");
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Use gemini-pro which is more widely available on free tier
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
     const prompt = `Generate exactly ${count} multiple-choice quiz questions on the topic: "${topic}" at ${difficulty} difficulty level.
 
