@@ -244,38 +244,132 @@ function App() {
   };
 
   const renderCategorySelector = () => (
-    <motion.div variants={cardMotion} initial="initial" animate="animate" className="mx-auto w-full max-w-2xl overflow-hidden rounded-[32px] border border-slate-800/80 bg-slate-900/90 p-6 shadow-[0_0_40px_rgba(99,102,241,0.24)] backdrop-blur-xl sm:p-8">
-      <div className="mb-5">
-        <p className="text-sm uppercase tracking-[0.35em] text-cyan-300">Choose a test path</p>
-        <h2 className="mt-2 text-2xl font-semibold text-white">Start your self-evaluation journey</h2>
-        <p className="mt-2 text-sm text-slate-400">Select the category and education level that best fits the learner.</p>
-      </div>
-      <div className="space-y-4">
-        <label className="block text-sm font-medium text-slate-300">
-          Category
-          <select value={state.selectedCategory} onChange={(e) => setState((prev) => ({ ...prev, selectedCategory: e.target.value }))} className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-800/80 px-4 py-3 text-slate-100 outline-none">
-            <option value="Quantitative Reasoning">Quantitative Reasoning</option>
-            <option value="Verbal Reasoning">Verbal Reasoning</option>
-            <option value="Mathematics">Mathematics</option>
-            <option value="General Knowledge">General Knowledge</option>
-          </select>
-        </label>
-        <label className="block text-sm font-medium text-slate-300">
-          Education Level
-          <select value={state.selectedEducationLevel} onChange={(e) => setState((prev) => ({ ...prev, selectedEducationLevel: e.target.value }))} className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-800/80 px-4 py-3 text-slate-100 outline-none">
-            <option value="general">General</option>
-            <option value="nursery">Nursery</option>
-            <option value="primary">Primary</option>
-            <option value="secondary">Secondary</option>
-            <option value="tertiary">Tertiary</option>
-          </select>
-        </label>
-        <button onClick={handleStartTest} disabled={loadingQuestions} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-500 to-fuchsia-500 px-4 py-3 font-semibold text-white shadow-lg shadow-cyan-500/20 transition-transform duration-200 hover:-translate-y-0.5 disabled:opacity-70">
-          {loadingQuestions ? 'Loading questions...' : 'Start Test'}
-          <ArrowRight size={16} />
-        </button>
-      </div>
-    </motion.div>
+    <div className="min-h-screen w-full bg-gradient-to-b from-slate-950 via-indigo-950/20 to-slate-950 pt-32 pb-24 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+      <motion.div variants={cardMotion} initial="initial" animate="animate" className="w-full max-w-3xl">
+        {/* Header Section */}
+        <div className="mb-12 text-center">
+          <div className="inline-block mb-4 px-4 py-2 bg-indigo-950/50 border border-indigo-500/30 rounded-full">
+            <span className="text-indigo-300 text-sm font-medium">✨ Premium Assessment</span>
+          </div>
+          <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4 leading-tight">
+            A Sophisticated Cognitive Assessment
+          </h1>
+          <p className="text-xl text-slate-400 mb-2">
+            Built for high-value certification.
+          </p>
+          <p className="text-slate-400 max-w-2xl mx-auto">
+            Complete the test, receive a verified certificate, and present your strengths with confidence.
+          </p>
+        </div>
+
+        {/* Form Card */}
+        <motion.div className="rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-950/40 to-purple-950/40 backdrop-blur-xl p-8 sm:p-12 shadow-2xl">
+          <div className="space-y-8">
+            {/* Category Selection */}
+            <div>
+              <label className="block mb-3">
+                <p className="text-sm uppercase tracking-[0.15em] text-indigo-300 font-semibold mb-2">Test Category</p>
+                <p className="text-slate-400 text-sm mb-4">Choose the subject area you want to be assessed on</p>
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[
+                  { value: 'Quantitative Reasoning', label: '📊 Quantitative Reasoning' },
+                  { value: 'Verbal Reasoning', label: '📖 Verbal Reasoning' },
+                  { value: 'Mathematics', label: '🔢 Mathematics' },
+                  { value: 'General Knowledge', label: '🌍 General Knowledge' }
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setState((prev) => ({ ...prev, selectedCategory: option.value }))}
+                    className={`relative group px-4 py-3 rounded-xl font-medium transition-all duration-300 border ${
+                      state.selectedCategory === option.value
+                        ? 'border-indigo-500/50 bg-indigo-600/30 text-white shadow-lg shadow-indigo-500/30'
+                        : 'border-indigo-500/20 bg-indigo-950/20 text-slate-300 hover:border-indigo-500/40 hover:bg-indigo-950/40'
+                    }`}
+                  >
+                    {option.label}
+                    {state.selectedCategory === option.value && (
+                      <motion.div
+                        layoutId="active-category"
+                        className="absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-600/20 to-purple-600/20 -z-10"
+                        transition={{ type: 'spring', duration: 0.4 }}
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Education Level Selection */}
+            <div>
+              <label className="block mb-3">
+                <p className="text-sm uppercase tracking-[0.15em] text-indigo-300 font-semibold mb-2">Education Level</p>
+                <p className="text-slate-400 text-sm mb-4">Select the difficulty level that matches your background</p>
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                {[
+                  { value: 'general', label: 'General' },
+                  { value: 'primary', label: 'Primary' },
+                  { value: 'secondary', label: 'Secondary' },
+                  { value: 'tertiary', label: 'Tertiary' },
+                  { value: 'nursery', label: 'Nursery' }
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setState((prev) => ({ ...prev, selectedEducationLevel: option.value }))}
+                    className={`px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-300 border ${
+                      state.selectedEducationLevel === option.value
+                        ? 'border-indigo-500/50 bg-indigo-600/30 text-white shadow-md shadow-indigo-500/30'
+                        : 'border-indigo-500/20 bg-indigo-950/20 text-slate-300 hover:border-indigo-500/40 hover:bg-indigo-950/40'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Info Box */}
+            <div className="rounded-xl border border-indigo-500/20 bg-indigo-950/20 p-4">
+              <p className="text-sm text-slate-300 flex items-center gap-2">
+                <span className="text-indigo-400">ℹ️</span>
+                <span>After completing the test, you'll receive your IQ assessment and a shareable certificate of achievement.</span>
+              </p>
+            </div>
+
+            {/* Start Button */}
+            <motion.button
+              onClick={handleStartTest}
+              disabled={loadingQuestions}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-semibold text-lg shadow-lg shadow-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/70 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {loadingQuestions ? (
+                <>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                    className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                  />
+                  Loading Questions...
+                </>
+              ) : (
+                <>
+                  Begin Assessment
+                  <ArrowRight size={20} />
+                </>
+              )}
+            </motion.button>
+
+            {/* Footer Note */}
+            <p className="text-xs text-center text-slate-500">
+              Estimated time: 15-20 minutes • Free assessment • No payment required
+            </p>
+          </div>
+        </motion.div>
+      </motion.div>
+    </div>
   );
 
   const renderQuizCard = () => (
