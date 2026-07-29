@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   Brain,
@@ -201,6 +202,7 @@ function FAQItem({ item, isOpen, onToggle }) {
 
 export default function LandingPage() {
   const [openFAQ, setOpenFAQ] = useState(0);
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-indigo-950/20 to-slate-950">
@@ -213,7 +215,7 @@ export default function LandingPage() {
             </div>
             <span className="text-xl font-bold text-white">Marthington IQ</span>
           </div>
-          <button className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg hover:shadow-indigo-500/50 transition">
+          <button onClick={() => navigate('/quiz')} className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg hover:shadow-indigo-500/50 transition">
             Get Started
           </button>
         </div>
@@ -239,6 +241,7 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 mb-12">
               <motion.button
+                onClick={() => navigate('/quiz')}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-indigo-500/50 transition"
@@ -482,6 +485,7 @@ export default function LandingPage() {
                     <span className="text-slate-400">{plan.period}</span>
                   </div>
                   <motion.button
+                    onClick={() => navigate('/quiz')}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className={`w-full py-3 rounded-lg font-semibold mb-8 transition ${
@@ -523,6 +527,7 @@ export default function LandingPage() {
             Start with our free trial today. No credit card required.
           </motion.p>
           <motion.button
+            onClick={() => navigate('/quiz')}
             variants={itemVariants}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
