@@ -9,6 +9,7 @@ import CourseDashboard from './components/CourseDashboard';
 import UnifiedTeaserResult from './components/UnifiedTeaserResult';
 import PaymentSuccessPage from './components/PaymentSuccessPage';
 import LandingPage from './components/LandingPage';
+import DynamicQuizSetup from './components/DynamicQuizSetup';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://marthington-set.onrender.com';
 
@@ -44,8 +45,12 @@ const initialState = {
   submitting: false,
   paid: false,
   resultsLocked: true,
-  selectedCategory: 'Quantitative Reasoning',
-  selectedEducationLevel: 'general'
+  quizMetadata: {
+    subject: '',
+    difficulty: 'secondary',
+    questionCount: 10,
+    source: 'ai-generated'
+  }
 };
 
 const pageMotion = {
@@ -111,7 +116,6 @@ function App() {
   const location = useLocation();
   const [timeLeft, setTimeLeft] = useState(20);
   const [error, setError] = useState('');
-  const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [showCourseTools, setShowCourseTools] = useState(false);
   const [submissionSummary, setSubmissionSummary] = useState(null);
 
@@ -130,23 +134,6 @@ function App() {
     return () => clearInterval(timer);
   }, [state.step, questions.length]);
 
-  const loadQuestions = async (category, educationLevel) => {
-    setLoadingQuestions(true);
-    try {
-      const query = new URLSearchParams({ category, educationLevel, limit: '12' });
-      const res = await fetch(`${API_BASE_URL}/api/test/questions?${query.toString()}`);
-      const data = await res.json();
-      if (Array.isArray(data) && data.length) {
-        setQuestions(normalizeQuestions(data));
-        setState((prev) => ({ ...prev, step: 0, answers: [] }));
-      }
-    } catch (err) {
-      setError('Unable to load the selected test set.');
-    } finally {
-      setLoadingQuestions(false);
-    }
-  };
-
   const currentQuestion = questions[state.step];
 
   const progressPercent = useMemo(() => {
@@ -155,8 +142,8 @@ function App() {
   }, [questions.length, state.step]);
 
   const handleStartTest = async () => {
-    await loadQuestions(state.selectedCategory, state.selectedEducationLevel);
-    setState((prev) => ({ ...prev, step: 1 }));
+    // This function is no longer needed - DynamicQuizSetup handles quiz initialization
+    // Keeping as placeholder for backward compatibility
   };
 
   const handleAnswer = (selectedIndex) => {
@@ -191,8 +178,10 @@ function App() {
           rawScore,
           iqScore,
           testMetadata: {
-            category: state.selectedCategory,
-            educationLevel: state.selectedEducationLevel
+            subject: state.quizMetadata.subject,
+            difficulty: state.quizMetadata.difficulty,
+            questionCount: state.quizMetadata.questionCount,
+            source: state.quizMetadata.source
           }
         })
       });
@@ -243,133 +232,25 @@ function App() {
     }
   };
 
-  const renderCategorySelector = () => (
-    <div className="min-h-screen w-full bg-gradient-to-b from-slate-950 via-indigo-950/20 to-slate-950 pt-32 pb-24 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
-      <motion.div variants={cardMotion} initial="initial" animate="animate" className="w-full max-w-3xl">
-        {/* Header Section */}
-        <div className="mb-12 text-center">
-          <div className="inline-block mb-4 px-4 py-2 bg-indigo-950/50 border border-indigo-500/30 rounded-full">
-            <span className="text-indigo-300 text-sm font-medium">✨ Premium Assessment</span>
-          </div>
-          <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4 leading-tight">
-            A Sophisticated Cognitive Assessment
-          </h1>
-          <p className="text-xl text-slate-400 mb-2">
-            Built for high-value certification.
-          </p>
-          <p className="text-slate-400 max-w-2xl mx-auto">
-            Complete the test, receive a verified certificate, and present your strengths with confidence.
-          </p>
-        </div>
+  const handleDynamicQuizStart = (quizData) => {
+    // quizData contains: { questions, subject, difficulty, questionCount, source }
+    const normalizedQuestions = normalizeQuestions(quizData.questions);
+    setQuestions(normalizedQuestions);
+    setState((prev) => ({
+      ...prev,
+      step: 1,
+      answers: [],
+      quizMetadata: {
+        subject: quizData.subject,
+        difficulty: quizData.difficulty,
+        questionCount: quizData.questionCount,
+        source: quizData.source
+      }
+    }));
+  };
 
-        {/* Form Card */}
-        <motion.div className="rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-950/40 to-purple-950/40 backdrop-blur-xl p-8 sm:p-12 shadow-2xl">
-          <div className="space-y-8">
-            {/* Category Selection */}
-            <div>
-              <label className="block mb-3">
-                <p className="text-sm uppercase tracking-[0.15em] text-indigo-300 font-semibold mb-2">Test Category</p>
-                <p className="text-slate-400 text-sm mb-4">Choose the subject area you want to be assessed on</p>
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {[
-                  { value: 'Quantitative Reasoning', label: '📊 Quantitative Reasoning' },
-                  { value: 'Verbal Reasoning', label: '📖 Verbal Reasoning' },
-                  { value: 'Mathematics', label: '🔢 Mathematics' },
-                  { value: 'General Knowledge', label: '🌍 General Knowledge' }
-                ].map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setState((prev) => ({ ...prev, selectedCategory: option.value }))}
-                    className={`relative group px-4 py-3 rounded-xl font-medium transition-all duration-300 border ${
-                      state.selectedCategory === option.value
-                        ? 'border-indigo-500/50 bg-indigo-600/30 text-white shadow-lg shadow-indigo-500/30'
-                        : 'border-indigo-500/20 bg-indigo-950/20 text-slate-300 hover:border-indigo-500/40 hover:bg-indigo-950/40'
-                    }`}
-                  >
-                    {option.label}
-                    {state.selectedCategory === option.value && (
-                      <motion.div
-                        layoutId="active-category"
-                        className="absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-600/20 to-purple-600/20 -z-10"
-                        transition={{ type: 'spring', duration: 0.4 }}
-                      />
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Education Level Selection */}
-            <div>
-              <label className="block mb-3">
-                <p className="text-sm uppercase tracking-[0.15em] text-indigo-300 font-semibold mb-2">Education Level</p>
-                <p className="text-slate-400 text-sm mb-4">Select the difficulty level that matches your background</p>
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                {[
-                  { value: 'general', label: 'General' },
-                  { value: 'primary', label: 'Primary' },
-                  { value: 'secondary', label: 'Secondary' },
-                  { value: 'tertiary', label: 'Tertiary' },
-                  { value: 'nursery', label: 'Nursery' }
-                ].map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setState((prev) => ({ ...prev, selectedEducationLevel: option.value }))}
-                    className={`px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-300 border ${
-                      state.selectedEducationLevel === option.value
-                        ? 'border-indigo-500/50 bg-indigo-600/30 text-white shadow-md shadow-indigo-500/30'
-                        : 'border-indigo-500/20 bg-indigo-950/20 text-slate-300 hover:border-indigo-500/40 hover:bg-indigo-950/40'
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Info Box */}
-            <div className="rounded-xl border border-indigo-500/20 bg-indigo-950/20 p-4">
-              <p className="text-sm text-slate-300 flex items-center gap-2">
-                <span className="text-indigo-400">ℹ️</span>
-                <span>After completing the test, you'll receive your IQ assessment and a shareable certificate of achievement.</span>
-              </p>
-            </div>
-
-            {/* Start Button */}
-            <motion.button
-              onClick={handleStartTest}
-              disabled={loadingQuestions}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-semibold text-lg shadow-lg shadow-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/70 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {loadingQuestions ? (
-                <>
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity }}
-                    className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
-                  />
-                  Loading Questions...
-                </>
-              ) : (
-                <>
-                  Begin Assessment
-                  <ArrowRight size={20} />
-                </>
-              )}
-            </motion.button>
-
-            {/* Footer Note */}
-            <p className="text-xs text-center text-slate-500">
-              Estimated time: 15-20 minutes • Free assessment • No payment required
-            </p>
-          </div>
-        </motion.div>
-      </motion.div>
-    </div>
+  const renderDynamicQuizSetup = () => (
+    <DynamicQuizSetup onStartQuiz={handleDynamicQuizStart} />
   );
 
   const renderQuizCard = () => (
@@ -610,8 +491,8 @@ function App() {
               </div>
             ) : null}
             {showCourseTools ? <CourseDashboard /> : null}
-            {state.step === 0 ? renderCategorySelector() : null}
-            {state.step >= 1 && state.step < questions.length && state.step < 3 ? renderQuizCard() : null}
+            {state.step === 0 ? renderDynamicQuizSetup() : null}
+            {state.step >= 1 && state.step < questions.length ? renderQuizCard() : null}
             {state.step === 3 ? renderLeadCollector() : null}
             {state.step === 4 ? renderResultsTeaser() : null}
             {error ? <div className="mx-auto max-w-2xl rounded-2xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-300">{error}</div> : null}
