@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Search, Zap, BookOpen, TrendingUp } from 'lucide-react';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://marthington-set.onrender.com';
+
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -74,9 +76,9 @@ export default function DynamicQuizSetup({ onStartQuiz }) {
     setError('');
 
     try {
-      // Call the AI question generation endpoint
+      // Call the AI question generation endpoint with full URL
       const response = await fetch(
-        `/api/quiz/ai-questions?topic=${encodeURIComponent(searchQuery.trim())}&difficulty=${selectedDifficulty}&count=${questionCount}`
+        `${API_BASE_URL}/api/quiz/ai-questions?topic=${encodeURIComponent(searchQuery.trim())}&difficulty=${selectedDifficulty}&count=${questionCount}`
       );
 
       const data = await response.json();
