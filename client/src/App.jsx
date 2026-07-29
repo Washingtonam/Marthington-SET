@@ -8,6 +8,7 @@ import CourseSearchBar from './components/CourseSearchBar';
 import CourseDashboard from './components/CourseDashboard';
 import UnifiedTeaserResult from './components/UnifiedTeaserResult';
 import PaymentSuccessPage from './components/PaymentSuccessPage';
+import LandingPage from './components/LandingPage';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://marthington-set.onrender.com';
 
@@ -422,8 +423,10 @@ function App() {
 
   return (
     <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/quiz" element={renderMainExperience()} />
       <Route path="/payment-success" element={<PaymentSuccessPage />} />
-      <Route path="*" element={renderMainExperience()} />
+      <Route path="*" element={<LandingPage />} />
     </Routes>
   );
 }
