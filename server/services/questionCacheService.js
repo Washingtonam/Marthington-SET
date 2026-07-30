@@ -56,8 +56,8 @@ export async function getOrGenerateQuestions(topic, difficulty = 'medium', count
       console.log(`📝 Only found ${cachedQuestions.length}/${count} cached. Checking open-source bank for ${missingCount} questions...`);
       const query = {
         $or: [
-          { category: { $regex: `^${escapeRegExp(topic)}$`, $options: 'i' } },
-          { topic: { $regex: `^${escapeRegExp(topic)}$`, $options: 'i' } }
+          { category: { $regex: escapeRegExp(topic), $options: 'i' } },
+          { topic: { $regex: escapeRegExp(topic), $options: 'i' } }
         ],
         source: 'open-source'
       };
@@ -79,6 +79,33 @@ export async function getOrGenerateQuestions(topic, difficulty = 'medium', count
       }
 
       const fallbackQuestions = cachedQuestions.slice(0, count);
+      const { success: generatedSuccess, questions: generatedQuestions, error: generationError } = await generateQuestionsWithFallback(
+        topic,
+        difficulty,
+        Math.max(count, missingCount)
+      );
+
+      if (generatedSuccess && generatedQuestions.length > 0) {
+        const savedQuestions = await Question.insertMany(
+          generatedQuestions.map(q => ({
+            ...q,
+            category: topic,
+            sequence: q.options.join(' / ')
+          }))
+        );
+
+        return {
+          success: true,
+          questions: [...fallbackQuestions, ...savedQuestions].slice(0, count),
+          source: 'mixed',
+          cached: cachedQuestions.length,
+          generated: savedQuestions.length,
+          openSource: 0,
+          availableTopics: await getAvailableTopics('open-source'),
+          message: `No matching open-source questions were found, so ${savedQuestions.length} fresh questions were generated instead`
+        };
+      }
+
       return {
         success: true,
         questions: fallbackQuestions,
@@ -86,7 +113,7 @@ export async function getOrGenerateQuestions(topic, difficulty = 'medium', count
         cached: cachedQuestions.length,
         openSource: 0,
         availableTopics: await getAvailableTopics('open-source'),
-        message: fallbackQuestions.length > 0 ? 'No matching open-source questions were found for that topic' : 'No questions are currently available for that topic'
+        message: fallbackQuestions.length > 0 ? 'No matching open-source questions were found for that topic' : (generationError || 'No questions are currently available for that topic')
       };
     }
 
