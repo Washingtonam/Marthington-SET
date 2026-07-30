@@ -102,7 +102,7 @@ router.get('/search', async (req, res) => {
  */
 router.get('/ai-questions', async (req, res) => {
   try {
-    const { topic, difficulty = 'medium', count = 10 } = req.query;
+    const { topic, difficulty = 'medium', count = 10, source = 'auto' } = req.query;
 
     if (!topic || !topic.trim()) {
       return res.status(400).json({
@@ -111,7 +111,7 @@ router.get('/ai-questions', async (req, res) => {
       });
     }
 
-    const result = await getOrGenerateQuestions(topic.trim(), difficulty, parseInt(count) || 10);
+    const result = await getOrGenerateQuestions(topic.trim(), difficulty, parseInt(count) || 10, source);
 
     if (!result.success) {
       return res.status(500).json({

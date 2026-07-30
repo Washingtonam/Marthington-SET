@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Search, Zap, BookOpen, TrendingUp } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ArrowRight, Search, Zap, Sparkles, Library, Brain } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://marthington-set.onrender.com';
 
@@ -36,9 +36,16 @@ const DIFFICULTY_LEVELS = [
   { value: 'tertiary', label: 'Tertiary', color: 'from-pink-600 to-purple-600' },
 ];
 
+const SOURCE_OPTIONS = [
+  { value: 'auto', label: 'Auto', description: 'Use cached, open-source, and AI questions as needed', icon: Sparkles },
+  { value: 'open-source', label: 'Open-source bank', description: 'Prefer public JSON question banks first', icon: Library },
+  { value: 'ai-generated', label: 'AI-generated', description: 'Generate fresh questions with AI', icon: Brain },
+];
+
 export default function DynamicQuizSetup({ onStartQuiz }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState('secondary');
+  const [selectedSource, setSelectedSource] = useState('auto');
   const [questionCount, setQuestionCount] = useState(10);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -78,7 +85,7 @@ export default function DynamicQuizSetup({ onStartQuiz }) {
     try {
       // Call the AI question generation endpoint with full URL
       const response = await fetch(
-        `${API_BASE_URL}/api/quiz/ai-questions?topic=${encodeURIComponent(searchQuery.trim())}&difficulty=${selectedDifficulty}&count=${questionCount}`
+        `${API_BASE_URL}/api/quiz/ai-questions?topic=${encodeURIComponent(searchQuery.trim())}&difficulty=${selectedDifficulty}&count=${questionCount}&source=${selectedSource}`
       );
 
       const data = await response.json();
@@ -93,7 +100,7 @@ export default function DynamicQuizSetup({ onStartQuiz }) {
         subject: searchQuery.trim(),
         difficulty: selectedDifficulty,
         questionCount: data.questions.length,
-        source: data.source,
+        source: data.source || selectedSource,
       });
     } catch (err) {
       setError(err.message || 'Failed to generate questions. Please try again.');
@@ -112,15 +119,16 @@ export default function DynamicQuizSetup({ onStartQuiz }) {
         className="max-w-4xl mx-auto"
       >
         {/* Header */}
-        <motion.div variants={itemVariants} className="text-center mb-12">
-          <div className="inline-block mb-4 px-4 py-2 bg-indigo-950/50 border border-indigo-500/30 rounded-full">
-            <span className="text-indigo-300 text-sm font-medium">🚀 Dynamic Quiz Platform</span>
+        <motion.div variants={itemVariants} className="text-center mb-10">
+          <div className="inline-flex items-center gap-2 mb-4 rounded-full border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-300">
+            <Sparkles className="h-4 w-4" />
+            Fresh question sourcing for every quiz
           </div>
-          <h1 className="text-5xl font-bold text-white mb-4">
-            What do you want to learn today?
+          <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">
+            Pick a topic and launch a quiz in seconds
           </h1>
-          <p className="text-xl text-slate-400 max-w-2xl mx-auto">
-            Search any subject, choose your level, and get a personalized AI-generated quiz instantly.
+          <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+            Choose a subject, define the level, and let the platform pull from cached, open-source, or AI-generated questions depending on what you need.
           </p>
         </motion.div>
 
@@ -143,6 +151,33 @@ export default function DynamicQuizSetup({ onStartQuiz }) {
                 placeholder="e.g., Advanced Calculus, Quantum Physics, Renaissance History..."
                 className="w-full pl-12 pr-4 py-4 rounded-2xl border border-indigo-500/30 bg-indigo-950/20 text-white placeholder-slate-500 outline-none focus:border-indigo-500/60 focus:bg-indigo-950/30 focus:ring-2 focus:ring-indigo-500/20 transition text-lg"
               />
+            </div>
+          </div>
+
+          {/* Source Selection */}
+          <div className="mb-8">
+            <label className="block text-sm uppercase tracking-wide text-indigo-300 font-semibold mb-4">
+              🔄 Choose Question Source
+            </label>
+            <div className="grid gap-3 md:grid-cols-3">
+              {SOURCE_OPTIONS.map((source) => {
+                const Icon = source.icon;
+                const active = selectedSource === source.value;
+                return (
+                  <button
+                    key={source.value}
+                    type="button"
+                    onClick={() => setSelectedSource(source.value)}
+                    className={`rounded-2xl border p-4 text-left transition-all ${active ? 'border-cyan-400/60 bg-cyan-500/10 text-white shadow-lg shadow-cyan-500/10' : 'border-indigo-500/20 bg-indigo-950/20 text-slate-300 hover:border-indigo-500/40'}`}
+                  >
+                    <div className="mb-2 flex items-center gap-2">
+                      <Icon className="h-4 w-4" />
+                      <span className="font-semibold">{source.label}</span>
+                    </div>
+                    <p className="text-sm text-slate-400">{source.description}</p>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -230,7 +265,7 @@ export default function DynamicQuizSetup({ onStartQuiz }) {
           </motion.button>
 
           <p className="text-center text-sm text-slate-400 mt-4">
-            Estimated time: {Math.ceil(questionCount / 3)} minutes • AI-generated • Instant results
+            Estimated time: {Math.ceil(questionCount / 3)} minutes • {SOURCE_OPTIONS.find((source) => source.value === selectedSource)?.label || 'Auto'} • Instant results
           </p>
         </motion.div>
 

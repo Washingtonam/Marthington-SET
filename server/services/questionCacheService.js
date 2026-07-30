@@ -5,8 +5,10 @@ import { generateQuestionsWithFallback } from './geminiService.js';
  * Get or generate questions for a topic
  * Smart caching: checks MongoDB first, generates if not found
  */
-export async function getOrGenerateQuestions(topic, difficulty = 'medium', count = 10) {
+export async function getOrGenerateQuestions(topic, difficulty = 'medium', count = 10, preferredSource = 'auto') {
   try {
+    const normalizedSource = String(preferredSource || 'auto').toLowerCase();
+
     // Normalize difficulty input: accept 'easy/medium/hard' or education levels like 'secondary'
     const educationLevels = ['general', 'nursery', 'primary', 'secondary', 'tertiary'];
     const simpleDiff = (d) => {
@@ -44,7 +46,94 @@ export async function getOrGenerateQuestions(topic, difficulty = 'medium', count
     }
 
     const missingCount = count - cachedQuestions.length;
-    console.log(`📝 Only found ${cachedQuestions.length}/${count} cached. Generating ${missingCount} new questions...`);
+    let openSourceQuestions = [];
+
+    if (missingCount > 0) {
+      console.log(`📝 Only found ${cachedQuestions.length}/${count} cached. Checking open-source bank for ${missingCount} questions...`);
+      const query = {
+        $or: [
+          { category: topic },
+          { topic: topic }
+        ],
+        source: 'open-source'
+      };
+
+      openSourceQuestions = await Question.find(query).limit(missingCount);
+    }
+
+    if (normalizedSource === 'open-source') {
+      if (openSourceQuestions.length > 0) {
+        return {
+          success: true,
+          questions: openSourceQuestions.slice(0, count),
+          source: 'open-source',
+          cached: 0,
+          openSource: openSourceQuestions.length,
+          message: `Served ${openSourceQuestions.length} open-source questions`
+        };
+      }
+
+      return {
+        success: true,
+        questions: cachedQuestions.slice(0, count),
+        source: 'partial-cache',
+        cached: cachedQuestions.length,
+        openSource: 0,
+        message: 'No open-source questions were available for that topic'
+      };
+    }
+
+    if (normalizedSource === 'ai-generated') {
+      const { success, questions: generatedQuestions, error } = await generateQuestionsWithFallback(
+        topic,
+        difficulty,
+        missingCount
+      );
+
+      if (!success || !generatedQuestions.length) {
+        if (cachedQuestions.length > 0) {
+          return {
+            success: true,
+            questions: cachedQuestions,
+            source: 'partial-cache',
+            message: `Returned ${cachedQuestions.length} cached questions (generation failed)`
+          };
+        }
+
+        throw new Error(`Unable to generate questions: ${error}`);
+      }
+
+      const savedQuestions = await Question.insertMany(
+        generatedQuestions.map(q => ({
+          ...q,
+          category: topic,
+          sequence: q.options.join(' / ')
+        }))
+      );
+
+      return {
+        success: true,
+        questions: [...cachedQuestions, ...savedQuestions].slice(0, count),
+        source: 'ai-generated',
+        cached: cachedQuestions.length,
+        generated: savedQuestions.length,
+        message: `Served ${cachedQuestions.length} cached + ${savedQuestions.length} newly generated questions`
+      };
+    }
+
+    if (openSourceQuestions.length > 0) {
+      const combinedQuestions = [...cachedQuestions, ...openSourceQuestions];
+      return {
+        success: true,
+        questions: combinedQuestions.slice(0, count),
+        source: 'mixed',
+        cached: cachedQuestions.length,
+        openSource: openSourceQuestions.length,
+        message: `Served ${cachedQuestions.length} cached and ${openSourceQuestions.length} open-source questions`
+      };
+    }
+
+    console.log(`📝 No open-source questions available for "${topic}". Generating ${missingCount} new questions...`);
 
     // Step 2: Generate missing questions using AI
     const { success, questions: generatedQuestions, error } = await generateQuestionsWithFallback(

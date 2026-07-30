@@ -49,7 +49,7 @@ const initialState = {
     subject: '',
     difficulty: 'secondary',
     questionCount: 10,
-    source: 'ai-generated'
+    source: 'auto'
   }
 };
 
@@ -268,8 +268,8 @@ function App() {
               <span className="px-4 py-2 rounded-full border border-indigo-500/40 bg-indigo-600/20 text-indigo-300 text-sm font-semibold">
                 📊 {currentQuestion?.category}
               </span>
-              <span className="px-4 py-2 rounded-full border border-yellow-500/40 bg-yellow-600/20 text-yellow-300 text-sm font-semibold">
-                🔥 2x Streak
+              <span className="px-4 py-2 rounded-full border border-cyan-500/40 bg-cyan-600/20 text-cyan-300 text-sm font-semibold">
+                🔄 {state.quizMetadata?.source || 'auto'}
               </span>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-indigo-500/30 bg-indigo-950/50">
