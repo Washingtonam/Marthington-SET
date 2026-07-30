@@ -1,6 +1,10 @@
 import Question from '../models/Question.js';
 import { generateQuestionsWithFallback } from './geminiService.js';
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
  * Get or generate questions for a topic
  * Smart caching: checks MongoDB first, generates if not found
@@ -52,8 +56,8 @@ export async function getOrGenerateQuestions(topic, difficulty = 'medium', count
       console.log(`📝 Only found ${cachedQuestions.length}/${count} cached. Checking open-source bank for ${missingCount} questions...`);
       const query = {
         $or: [
-          { category: topic },
-          { topic: topic }
+          { category: { $regex: `^${escapeRegExp(topic)}$`, $options: 'i' } },
+          { topic: { $regex: `^${escapeRegExp(topic)}$`, $options: 'i' } }
         ],
         source: 'open-source'
       };
@@ -69,17 +73,20 @@ export async function getOrGenerateQuestions(topic, difficulty = 'medium', count
           source: 'open-source',
           cached: 0,
           openSource: openSourceQuestions.length,
+          availableTopics: await getAvailableTopics('open-source'),
           message: `Served ${openSourceQuestions.length} open-source questions`
         };
       }
 
+      const fallbackQuestions = cachedQuestions.slice(0, count);
       return {
         success: true,
-        questions: cachedQuestions.slice(0, count),
-        source: 'partial-cache',
+        questions: fallbackQuestions,
+        source: fallbackQuestions.length > 0 ? 'partial-cache' : 'empty',
         cached: cachedQuestions.length,
         openSource: 0,
-        message: 'No open-source questions were available for that topic'
+        availableTopics: await getAvailableTopics('open-source'),
+        message: fallbackQuestions.length > 0 ? 'No matching open-source questions were found for that topic' : 'No questions are currently available for that topic'
       };
     }
 
@@ -129,6 +136,7 @@ export async function getOrGenerateQuestions(topic, difficulty = 'medium', count
         source: 'mixed',
         cached: cachedQuestions.length,
         openSource: openSourceQuestions.length,
+        availableTopics: await getAvailableTopics('open-source'),
         message: `Served ${cachedQuestions.length} cached and ${openSourceQuestions.length} open-source questions`
       };
     }
@@ -178,6 +186,7 @@ export async function getOrGenerateQuestions(topic, difficulty = 'medium', count
       source: 'mixed',
       cached: cachedQuestions.length,
       generated: savedQuestions.length,
+      availableTopics: await getAvailableTopics('open-source'),
       message: `Served ${cachedQuestions.length} cached + ${savedQuestions.length} newly generated questions`
     };
 
@@ -194,6 +203,19 @@ export async function getOrGenerateQuestions(topic, difficulty = 'medium', count
 /**
  * Pre-populate common topics to reduce first-time AI calls
  */
+export async function getAvailableTopics(source = 'open-source') {
+  try {
+    const topics = await Question.distinct('category', {
+      source: source === 'ai-generated' ? 'ai-generated' : 'open-source'
+    });
+
+    return topics.filter(Boolean).sort((a, b) => a.localeCompare(b));
+  } catch (error) {
+    console.error('Error fetching available topics:', error.message);
+    return [];
+  }
+}
+
 export async function preGenerateCommonTopics() {
   const commonTopics = [
     { topic: 'Quantitative Reasoning', difficulty: 'medium' },

@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import Question from '../models/Question.js';
 import { generateQuestionBundle } from '../utils/pdfProcessor.js';
-import { getOrGenerateQuestions, preGenerateCommonTopics } from '../services/questionCacheService.js';
+import { getAvailableTopics, getOrGenerateQuestions, preGenerateCommonTopics } from '../services/questionCacheService.js';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -167,18 +167,19 @@ router.post('/pre-generate', async (req, res) => {
  */
 router.get('/cached-topics', async (req, res) => {
   try {
-    const topics = await Question.distinct('category', {
-      source: 'ai-generated'
-    });
+    const source = (req.query.source || 'ai-generated').toString().toLowerCase();
+    const topics = source === 'open-source'
+      ? await getAvailableTopics('open-source')
+      : await Question.distinct('category', { source: 'ai-generated' });
 
     const topicStats = await Promise.all(
-      topics.map(async (topic) => ({
-        topic,
-        count: await Question.countDocuments({
-          category: topic,
-          source: 'ai-generated'
-        })
-      }))
+      topics.map(async (topic) => {
+        const count = source === 'open-source'
+          ? await Question.countDocuments({ category: topic, source: 'open-source' })
+          : await Question.countDocuments({ category: topic, source: 'ai-generated' });
+
+        return { topic, count };
+      })
     );
 
     res.json({

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Search, Zap, Sparkles, Library, Brain } from 'lucide-react';
 
@@ -50,21 +50,56 @@ export default function DynamicQuizSetup({ onStartQuiz }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [suggestedSubjects, setSuggestedSubjects] = useState(POPULAR_SUBJECTS);
+  const [availableTopics, setAvailableTopics] = useState([]);
 
-  // Filter suggestions as user types
+  useEffect(() => {
+    const loadTopics = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/quiz/cached-topics?source=open-source`);
+        const data = await response.json();
+
+        if (data.ok && Array.isArray(data.topics)) {
+          const mappedTopics = data.topics.map((topic) => ({
+            name: topic.topic,
+            icon: '📚',
+            description: `${topic.count} open-source questions`
+          }));
+          setAvailableTopics(mappedTopics);
+          setSuggestedSubjects(mappedTopics.length ? mappedTopics : POPULAR_SUBJECTS);
+        } else {
+          setAvailableTopics([]);
+          setSuggestedSubjects(POPULAR_SUBJECTS);
+        }
+      } catch (err) {
+        console.error('Failed to load open-source topics:', err);
+        setAvailableTopics([]);
+        setSuggestedSubjects(POPULAR_SUBJECTS);
+      }
+    };
+
+    loadTopics();
+  }, []);
+
+  useEffect(() => {
+    const query = searchQuery.trim().toLowerCase();
+    const baseTopics = availableTopics.length ? availableTopics : POPULAR_SUBJECTS;
+
+    if (!query) {
+      setSuggestedSubjects(baseTopics);
+      return;
+    }
+
+    const filtered = baseTopics.filter((subject) =>
+      subject.name.toLowerCase().includes(query) ||
+      subject.description.toLowerCase().includes(query)
+    );
+
+    setSuggestedSubjects(filtered.length ? filtered : baseTopics);
+  }, [availableTopics, searchQuery]);
+
   const handleSearchChange = (value) => {
     setSearchQuery(value);
     setError('');
-    
-    if (value.trim().length > 0) {
-      const filtered = POPULAR_SUBJECTS.filter(subject =>
-        subject.name.toLowerCase().includes(value.toLowerCase()) ||
-        subject.description.toLowerCase().includes(value.toLowerCase())
-      );
-      setSuggestedSubjects(filtered.length > 0 ? filtered : POPULAR_SUBJECTS);
-    } else {
-      setSuggestedSubjects(POPULAR_SUBJECTS);
-    }
   };
 
   // Handle subject selection
