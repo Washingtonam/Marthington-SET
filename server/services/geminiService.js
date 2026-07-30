@@ -63,14 +63,24 @@ Generate the questions now:`;
       throw new Error("Generated invalid question structure");
     }
 
-    // Clean and validate each question
+    // Helper to normalize difficulty values to schema-friendly format
+    const normalizeDifficulty = (d) => {
+      if (!d || typeof d !== 'string') return 'Medium';
+      const key = d.toLowerCase();
+      if (key.startsWith('e')) return 'Easy';
+      if (key.startsWith('m')) return 'Medium';
+      if (key.startsWith('h')) return 'Hard';
+      return 'Medium';
+    };
+
+    // Clean and validate each question, matching the Question schema
     const validatedQuestions = questions.map((q, idx) => ({
-      question: q.question || `Question ${idx + 1}`,
+      questionText: q.question || q.questionText || `Question ${idx + 1}`,
       options: Array.isArray(q.options) ? q.options.slice(0, 4) : [],
       correctAnswerIndex: typeof q.correctAnswerIndex === "number" ? q.correctAnswerIndex : 0,
-      correctAnswer: String.fromCharCode(65 + (q.correctAnswerIndex || 0)),
-      hint: q.hint || "",
-      difficulty: q.difficulty || difficulty,
+      correctAnswer: String.fromCharCode(65 + (typeof q.correctAnswerIndex === 'number' ? q.correctAnswerIndex : 0)),
+      hint: q.hint || q.hintText || "",
+      difficulty: normalizeDifficulty(q.difficulty || difficulty),
       category: q.category || topic,
       explanation: q.explanation || "No explanation provided",
       source: "ai-generated",
@@ -91,50 +101,45 @@ Generate the questions now:`;
 const FALLBACK_QUESTIONS = {
   default: [
     {
-      question: "What is the primary function of a computer's CPU?",
+      questionText: "What is the primary function of a computer's CPU?",
       options: ["Storing data", "Executing instructions", "Displaying output", "Managing network connections"],
       correctAnswerIndex: 1,
-      correctAnswer: "B",
       hint: "Think about what processes information in a computer",
       difficulty: "easy",
       category: "Computer Science",
       explanation: "The CPU (Central Processing Unit) executes instructions from programs and performs calculations."
     },
     {
-      question: "Which of the following is an example of a high-level programming language?",
+      questionText: "Which of the following is an example of a high-level programming language?",
       options: ["Assembly", "Machine Code", "Python", "Bytecode"],
       correctAnswerIndex: 2,
-      correctAnswer: "C",
       hint: "High-level languages are more human-readable",
       difficulty: "easy",
       category: "Computer Science",
       explanation: "Python is a high-level programming language that is easy to read and write for humans."
     },
     {
-      question: "What does 'GUI' stand for?",
+      questionText: "What does 'GUI' stand for?",
       options: ["Graph User Input", "Graphical User Interface", "Global User Identity", "General Utility Integration"],
       correctAnswerIndex: 1,
-      correctAnswer: "B",
       hint: "It's the visual part of software you interact with",
       difficulty: "easy",
       category: "Computer Science",
       explanation: "GUI stands for Graphical User Interface - the visual elements users interact with in applications."
     },
     {
-      question: "Which data structure works on the principle of 'Last In, First Out'?",
+      questionText: "Which data structure works on the principle of 'Last In, First Out'?",
       options: ["Queue", "Stack", "Array", "Tree"],
       correctAnswerIndex: 1,
-      correctAnswer: "B",
       hint: "Think of a stack of plates",
       difficulty: "medium",
       category: "Computer Science",
       explanation: "A Stack follows LIFO (Last In, First Out) principle where the last element added is the first one removed."
     },
     {
-      question: "What is the time complexity of binary search?",
+      questionText: "What is the time complexity of binary search?",
       options: ["O(n)", "O(n²)", "O(log n)", "O(1)"],
       correctAnswerIndex: 2,
-      correctAnswer: "C",
       hint: "It reduces the search space by half each time",
       difficulty: "medium",
       category: "Computer Science",
@@ -145,12 +150,31 @@ const FALLBACK_QUESTIONS = {
 
 function generateFallbackQuestions(topic, difficulty = "medium", count = 10) {
   const fallbackQs = FALLBACK_QUESTIONS.default || [];
-  
-  // Filter by difficulty or return all if not available
-  const filtered = fallbackQs.length > 0 ? fallbackQs : FALLBACK_QUESTIONS.default;
-  
-  // Return requested count (or all available)
-  return filtered.slice(0, Math.min(count, filtered.length));
+
+  const normalizeDifficulty = (d) => {
+    if (!d || typeof d !== 'string') return 'Medium';
+    const key = d.toLowerCase();
+    if (key.startsWith('e')) return 'Easy';
+    if (key.startsWith('m')) return 'Medium';
+    if (key.startsWith('h')) return 'Hard';
+    return 'Medium';
+  };
+
+  // Map fallback questions into the same normalized structure used by generateQuestions
+  const mapped = fallbackQs.map((q, idx) => ({
+    questionText: q.questionText || q.question || `Question ${idx + 1}`,
+    options: Array.isArray(q.options) ? q.options.slice(0,4) : [],
+    correctAnswerIndex: typeof q.correctAnswerIndex === 'number' ? q.correctAnswerIndex : 0,
+    correctAnswer: q.correctAnswer || String.fromCharCode(65 + (q.correctAnswerIndex || 0)),
+    hint: q.hint || '',
+    difficulty: normalizeDifficulty(q.difficulty || difficulty),
+    category: q.category || topic,
+    explanation: q.explanation || '',
+    source: 'ai-generated',
+    generatedAt: new Date()
+  }));
+
+  return mapped.slice(0, Math.min(count, mapped.length));
 }
 
 /**

@@ -7,12 +7,31 @@ import { generateQuestionsWithFallback } from './geminiService.js';
  */
 export async function getOrGenerateQuestions(topic, difficulty = 'medium', count = 10) {
   try {
+    // Normalize difficulty input: accept 'easy/medium/hard' or education levels like 'secondary'
+    const educationLevels = ['general', 'nursery', 'primary', 'secondary', 'tertiary'];
+    const simpleDiff = (d) => {
+      if (!d || typeof d !== 'string') return 'Medium';
+      const k = d.toLowerCase();
+      if (k.startsWith('e')) return 'Easy';
+      if (k.startsWith('m')) return 'Medium';
+      if (k.startsWith('h')) return 'Hard';
+      return null;
+    };
+
+    let query = { category: topic, source: 'ai-generated' };
+    const mappedDiff = simpleDiff(difficulty);
+    if (mappedDiff) {
+      query.difficulty = mappedDiff;
+    } else if (educationLevels.includes(String(difficulty).toLowerCase())) {
+      // caller probably sent an education level (e.g., 'secondary'); map to educationLevel and use default difficulty
+      query.educationLevel = String(difficulty).toLowerCase();
+      query.difficulty = 'Medium';
+    } else {
+      query.difficulty = 'Medium';
+    }
+
     // Step 1: Check if questions already exist in MongoDB
-    const cachedQuestions = await Question.find({
-      category: topic,
-      difficulty: difficulty,
-      source: 'ai-generated'
-    }).limit(count);
+    const cachedQuestions = await Question.find(query).limit(count);
 
     if (cachedQuestions.length >= count) {
       console.log(`✅ Serving ${count} cached questions for "${topic}"`);
