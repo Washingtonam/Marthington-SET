@@ -1,6 +1,11 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+let GoogleGenerativeAI = null;
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+try {
+  const module = await import("@google/generative-ai");
+  GoogleGenerativeAI = module.GoogleGenerativeAI;
+} catch (error) {
+  console.warn("GoogleGenerativeAI package is unavailable; AI generation will use the fallback path.", error.message);
+}
 
 /**
  * Generate quiz questions using Google Gemini API
@@ -14,6 +19,12 @@ export async function generateQuestions(topic, difficulty = "medium", count = 10
     if (!process.env.GEMINI_API_KEY) {
       throw new Error("GEMINI_API_KEY environment variable not set");
     }
+
+    if (!GoogleGenerativeAI) {
+      throw new Error("GoogleGenerativeAI package is not installed");
+    }
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
     // Use gemini-1.5-flash which is available on free tier
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -148,9 +159,7 @@ const FALLBACK_QUESTIONS = {
   ]
 };
 
-function generateFallbackQuestions(topic, difficulty = "medium", count = 10) {
-  const fallbackQs = FALLBACK_QUESTIONS.default || [];
-
+export function generateFallbackQuestions(topic, difficulty = "medium", count = 10) {
   const normalizeDifficulty = (d) => {
     if (!d || typeof d !== 'string') return 'Medium';
     const key = d.toLowerCase();
@@ -160,15 +169,74 @@ function generateFallbackQuestions(topic, difficulty = "medium", count = 10) {
     return 'Medium';
   };
 
-  // Map fallback questions into the same normalized structure used by generateQuestions
-  const mapped = fallbackQs.map((q, idx) => ({
+  const safeTopic = String(topic || 'General Knowledge').trim() || 'General Knowledge';
+  const baseQuestions = [
+    {
+      questionText: `Which of the following best describes ${safeTopic}?`,
+      options: [
+        `A core concept in ${safeTopic}`,
+        `A random object from ${safeTopic}`,
+        `A type of weather pattern`,
+        `A historical event unrelated to ${safeTopic}`
+      ],
+      correctAnswerIndex: 0,
+      hint: `Think about the main idea behind ${safeTopic}`,
+      difficulty: 'easy',
+      category: safeTopic,
+      explanation: `This question is focused on the core concept of ${safeTopic}.`
+    },
+    {
+      questionText: `What is the most appropriate first step when studying ${safeTopic}?`,
+      options: [
+        `Define the key terms and ideas`,
+        `Skip to the hardest problem`,
+        `Ignore examples`,
+        `Memorize unrelated facts`
+      ],
+      correctAnswerIndex: 0,
+      hint: `A strong foundation helps you understand ${safeTopic}`,
+      difficulty: 'medium',
+      category: safeTopic,
+      explanation: `Studying the core ideas is the most effective starting point for ${safeTopic}.`
+    },
+    {
+      questionText: `Which option is the best example related to ${safeTopic}?`,
+      options: [
+        `A clear application of ${safeTopic}`,
+        `A completely unrelated fact`,
+        `An unrelated historical date`,
+        `A random language term`
+      ],
+      correctAnswerIndex: 0,
+      hint: `Look for the answer that connects directly to ${safeTopic}`,
+      difficulty: 'medium',
+      category: safeTopic,
+      explanation: `The best example is one that directly connects to ${safeTopic}.`
+    },
+    {
+      questionText: `Why is ${safeTopic} important to learn?`,
+      options: [
+        `It helps build understanding and practical skills`,
+        `It only matters for entertainment`,
+        `It has no real-world value`,
+        `It is only useful in one unrelated field`
+      ],
+      correctAnswerIndex: 0,
+      hint: `Think about why this topic matters beyond the classroom`,
+      difficulty: 'hard',
+      category: safeTopic,
+      explanation: `Learning ${safeTopic} supports broader understanding and real-world application.`
+    }
+  ];
+
+  const mapped = baseQuestions.map((q, idx) => ({
     questionText: q.questionText || q.question || `Question ${idx + 1}`,
     options: Array.isArray(q.options) ? q.options.slice(0,4) : [],
     correctAnswerIndex: typeof q.correctAnswerIndex === 'number' ? q.correctAnswerIndex : 0,
     correctAnswer: q.correctAnswer || String.fromCharCode(65 + (q.correctAnswerIndex || 0)),
     hint: q.hint || '',
     difficulty: normalizeDifficulty(q.difficulty || difficulty),
-    category: q.category || topic,
+    category: q.category || safeTopic,
     explanation: q.explanation || '',
     source: 'ai-generated',
     generatedAt: new Date()
